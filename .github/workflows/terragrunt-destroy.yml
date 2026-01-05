@@ -1,0 +1,91 @@
+name: Terragrunt Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: '삭제할 레이어'
+        required: true
+        type: choice
+        options:
+          - 50-addons
+          - 40-nodegroups
+          - 30-eks-cluster
+          - 20-security
+          - 10-networking
+          - 00-foundation
+      environment:
+        description: '환경'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+      confirm:
+        description: '삭제 확인 (delete 입력)'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: ap-northeast-2
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    name: Terragrunt Destroy
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.confirm == 'delete' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt Init
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
+        run: terragrunt init --terragrunt-non-interactive
+
+      - name: Terragrunt Destroy
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
+        run: terragrunt destroy --terragrunt-non-interactive -auto-approve
+
+      - name: Post Destroy Summary
+        run: |
+          echo "## ⚠️ Terragrunt Destroy Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layer:** ${{ inputs.layer }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  reject:
+    name: Destroy Rejected
+    runs-on: ubuntu-latest
+    if: ${{ inputs.confirm != 'delete' }}
+    steps:
+      - name: Reject
+        run: |
+          echo "❌ Destroy rejected. 'delete' 입력이 필요합니다."
+          exit 1

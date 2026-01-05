@@ -1,0 +1,98 @@
+name: Terragrunt Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/**'
+      - 'modules/**'
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: '배포할 레이어 (전체 배포는 all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - 00-foundation
+          - 10-networking
+          - 20-security
+          - 30-eks-cluster
+          - 40-nodegroups
+          - 50-addons
+      environment:
+        description: '환경'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+
+env:
+  AWS_REGION: ap-northeast-2
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    name: Terragrunt Apply
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    defaults:
+      run:
+        working-directory: environments/${{ inputs.environment || 'prod' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt Init (All)
+        if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
+        run: terragrunt run-all init --terragrunt-non-interactive
+
+      - name: Terragrunt Init (Single Layer)
+        if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
+        working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
+        run: terragrunt init --terragrunt-non-interactive
+
+      - name: Terragrunt Apply (All)
+        if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
+        run: terragrunt run-all apply --terragrunt-non-interactive -auto-approve
+
+      - name: Terragrunt Apply (Single Layer)
+        if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
+        working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
+        run: terragrunt apply --terragrunt-non-interactive -auto-approve
+
+      - name: Post Apply Summary
+        run: |
+          echo "## Terragrunt Apply Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment || 'prod' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layer:** ${{ inputs.layer || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
