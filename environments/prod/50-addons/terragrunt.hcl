@@ -1,0 +1,44 @@
+################################################################################
+# EKS Add-ons Layer
+################################################################################
+
+include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
+locals {
+  common = read_terragrunt_config(find_in_parent_folders("common.hcl"))
+}
+
+terraform {
+  source = "${get_terragrunt_dir()}/../../../modules/addons"
+}
+
+dependency "eks_cluster" {
+  config_path = "../30-eks-cluster"
+
+  mock_outputs = {
+    cluster_name      = "eks-prod-cluster"
+    oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/mock"
+    oidc_provider_id  = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
+  }
+}
+
+inputs = {
+  cluster_name      = dependency.eks_cluster.outputs.cluster_name
+  oidc_provider_arn = dependency.eks_cluster.outputs.oidc_provider_arn
+  oidc_provider_id  = dependency.eks_cluster.outputs.oidc_provider_id
+
+  # Add-on toggles
+  enable_ebs_csi            = local.common.locals.addons.enable_ebs_csi
+  enable_pod_identity       = local.common.locals.addons.enable_pod_identity
+  enable_aws_lb_controller  = local.common.locals.addons.enable_aws_lb_controller
+  enable_cluster_autoscaler = local.common.locals.addons.enable_cluster_autoscaler
+
+  # Add-on versions (null = latest compatible)
+  vpc_cni_version      = null
+  coredns_version      = null
+  kube_proxy_version   = null
+  ebs_csi_version      = null
+  pod_identity_version = null
+}

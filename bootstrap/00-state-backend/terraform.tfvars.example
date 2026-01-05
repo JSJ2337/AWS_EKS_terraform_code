@@ -1,0 +1,6 @@
+# Example terraform.tfvars
+# Copy this file to terraform.tfvars and update values
+
+region      = "ap-northeast-2"
+project     = "eks-prod"
+environment = "prod"
