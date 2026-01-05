@@ -16,8 +16,8 @@ AWS EKS 기반 프로덕션 환경 인프라를 Terraform/Terragrunt로 구축�
 
 | 기술 | 버전 | 용도 |
 | ---- | ---- | ---- |
-| Terraform | >= 1.6 | IaC 도구 |
-| Terragrunt | >= 0.50 | Terraform wrapper, DRY 원칙 |
+| Terraform | >= 1.14 | IaC 도구 |
+| Terragrunt | >= 0.96 | Terraform wrapper, DRY 원칙 |
 | AWS EKS | 1.29+ | Kubernetes 관리형 서비스 |
 | AWS VPC | - | 네트워크 격리 |
 
@@ -409,21 +409,21 @@ AWS_EKS_terraform_code/
 
 ### 단기 (Week 3-4)
 
-4. EKS 클러스터 생성 (30-eks-cluster)
-5. 노드 그룹 구성 (40-nodegroups)
-6. 필수 애드온 설치 (50-addons)
+1. EKS 클러스터 생성 (30-eks-cluster)
+2. 노드 그룹 구성 (40-nodegroups)
+3. 필수 애드온 설치 (50-addons)
 
 ### 중기 (Week 5-6)
 
-7. 데이터베이스 구축 (60-database)
-8. 캐시 구축 (70-cache)
-9. 모니터링 설정 (90-monitoring)
+1. 데이터베이스 구축 (60-database)
+2. 캐시 구축 (70-cache)
+3. 모니터링 설정 (90-monitoring)
 
 ### 장기
 
-10. CI/CD 파이프라인 완성
-11. 멀티 어카운트 확장 (Organizations)
-12. Staging/Dev 환경 복제
+1. CI/CD 파이프라인 완성
+2. 멀티 어카운트 확장 (Organizations)
+3. Staging/Dev 환경 복제
 
 ---
 

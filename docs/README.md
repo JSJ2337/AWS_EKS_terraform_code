@@ -8,10 +8,10 @@ AWS EKS 인프라를 Terraform/Terragrunt로 관리하는 프로젝트입니다.
 
 ## 사전 요구사항
 
-- Terraform >= 1.6
-- Terragrunt >= 0.50
-- AWS CLI >= 2.0
-- kubectl >= 1.28
+- Terraform >= 1.14
+- Terragrunt >= 0.96
+- AWS CLI >= 2.22
+- kubectl >= 1.31
 - AWS 계정 및 적절한 IAM 권한
 
 ## 디렉토리 구조
