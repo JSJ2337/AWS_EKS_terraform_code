@@ -105,17 +105,6 @@ flowchart TD
 
     N -.->|VPC Endpoints| MO
     S -.->|Security Groups| MO
-
-    style F fill:#e1f5fe
-    style N fill:#b3e5fc
-    style S fill:#81d4fa
-    style EKS fill:#4fc3f7
-    style NG fill:#29b6f6
-    style AD fill:#03a9f4
-    style DB fill:#039be5
-    style CA fill:#039be5
-    style ST fill:#039be5
-    style MO fill:#0288d1
 ```
 
 ### 레이어별 설명
@@ -163,15 +152,6 @@ flowchart TB
 
     Pri_A --> NAT_A
     Pri_C --> NAT_C
-
-    style Pub_A fill:#c8e6c9
-    style Pub_C fill:#c8e6c9
-    style Pri_A fill:#fff9c4
-    style Pri_C fill:#fff9c4
-    style DB_A fill:#ffccbc
-    style DB_C fill:#ffccbc
-    style Pod_A fill:#e1bee7
-    style Pod_C fill:#e1bee7
 ```
 
 ### 서브넷 구성
@@ -237,11 +217,6 @@ flowchart TB
 
     ControlPlane --> DataPlane
     DataPlane --> Addons
-
-    style ControlPlane fill:#e3f2fd
-    style SystemNG fill:#fff3e0
-    style AppNG fill:#e8f5e9
-    style SpotNG fill:#fce4ec
 ```
 
 ## State 관리
@@ -260,9 +235,6 @@ flowchart LR
 
     TG[Terragrunt] -->|read/write| S3
     TG -->|lock/unlock| DDB
-
-    style S3 fill:#fff9c4
-    style DDB fill:#e1bee7
 ```
 
 ## 보안 설계
@@ -294,10 +266,6 @@ flowchart TB
     OIDC[OIDC Provider] --> IRSA
     CR --> EKS[EKS Cluster]
     NR --> NG[Node Groups]
-
-    style IRSA fill:#e8f5e9
-    style ClusterRoles fill:#e3f2fd
-    style UserRoles fill:#fff3e0
 ```
 
 ### 네트워크 보안
@@ -316,11 +284,6 @@ flowchart LR
     ALB_SG --> Node_SG
     Node_SG --> RDS_SG
     Node_SG --> Redis_SG
-
-    style ALB_SG fill:#c8e6c9
-    style Node_SG fill:#fff9c4
-    style RDS_SG fill:#ffccbc
-    style Redis_SG fill:#e1bee7
 ```
 
 ## 고가용성
@@ -347,9 +310,6 @@ flowchart TB
     ALB --> Node2
     RDS1 <-->|Sync| RDS2
     Redis1 <-->|Cluster| Redis2
-
-    style AZa fill:#e3f2fd
-    style AZc fill:#e8f5e9
 ```
 
 ### 고가용성 체크리스트
