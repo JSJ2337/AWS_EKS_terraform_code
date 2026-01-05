@@ -53,22 +53,28 @@ flowchart TB
     NAT_C --> IGW
 ```
 
-## 멀티 어카운트 구조
+## 멀티 어카운트 구조 (AWS Landing Zone)
 
 ```mermaid
 flowchart TB
-    subgraph Org["AWS Organization"]
-        Management["Management Account<br/>- Organizations<br/>- IAM Identity Center<br/>- Billing"]
+    subgraph Org["AWS Organization (Root)"]
+        Management["Management Account<br/>- Organizations<br/>- IAM Identity Center<br/>- SCPs<br/>- Billing"]
 
         subgraph SecurityOU["Security OU"]
-            Security["Security Account<br/>- Security Hub<br/>- GuardDuty<br/>- CloudTrail"]
+            LogArchive["Log Archive Account<br/>- CloudTrail Logs<br/>- Config Logs<br/>- VPC Flow Logs"]
+            Audit["Audit Account<br/>- Security Hub<br/>- GuardDuty<br/>- Config Aggregator"]
         end
 
-        subgraph SharedOU["Shared Services OU"]
-            Shared["Shared Services Account<br/>- ECR<br/>- Terraform State<br/>- Transit Gateway"]
+        subgraph InfraOU["Infrastructure OU"]
+            Network["Network Account<br/>- Transit Gateway<br/>- Network Firewall<br/>- Route 53"]
+            Shared["Shared Services Account<br/>- ECR<br/>- Terraform State<br/>- CI/CD Pipeline"]
         end
 
-        subgraph WorkloadOU["Workload OU"]
+        subgraph SandboxOU["Sandbox OU"]
+            Sandbox["Sandbox Account<br/>- 실험/테스트"]
+        end
+
+        subgraph WorkloadOU["Workloads OU"]
             Prod["Production Account<br/>- EKS Cluster<br/>- RDS/Redis<br/>- Application"]
             Stg["Staging Account"]
             Dev["Development Account"]
@@ -76,12 +82,33 @@ flowchart TB
     end
 
     Management --> SecurityOU
-    Management --> SharedOU
+    Management --> InfraOU
+    Management --> SandboxOU
     Management --> WorkloadOU
-    Shared -.->|Cross-Account| Prod
-    Shared -.->|Cross-Account| Stg
-    Shared -.->|Cross-Account| Dev
+
+    LogArchive -.->|Logs| Prod
+    LogArchive -.->|Logs| Stg
+    LogArchive -.->|Logs| Dev
+    Audit -.->|Security Monitoring| Prod
+    Network -.->|Transit Gateway| Prod
+    Shared -.->|ECR/State| Prod
+    Shared -.->|ECR/State| Stg
+    Shared -.->|ECR/State| Dev
 ```
+
+### 계정별 역할
+
+| 계정 | OU | 주요 역할 |
+| ---- | -- | --------- |
+| Management | Root | Organizations, IAM Identity Center, SCPs, Billing |
+| Log Archive | Security | 중앙 로그 저장 (CloudTrail, Config, Flow Logs) |
+| Audit | Security | 보안 모니터링 (Security Hub, GuardDuty) |
+| Network | Infrastructure | 네트워크 허브 (Transit Gateway, Firewall) |
+| Shared Services | Infrastructure | 공유 리소스 (ECR, State, CI/CD) |
+| Sandbox | Sandbox | 개발자 실험 환경 |
+| Production | Workloads | 프로덕션 워크로드 |
+| Staging | Workloads | 스테이징 환경 |
+| Development | Workloads | 개발 환경 |
 
 ## 레이어 구조
 

@@ -25,30 +25,78 @@ AWS EKS 기반 프로덕션 환경 인프라를 Terraform/Terragrunt로 구축�
 
 ## Phase 1: 기반 인프라 구축
 
-### 1.1 멀티 어카운트 구조 설계
+### 1.1 멀티 어카운트 구조 설계 (AWS Landing Zone 베스트 프랙티스)
 
 ```text
-AWS Organization (추후 확장)
-├── Management Account
-│   ├── AWS Organizations
-│   ├── AWS SSO / IAM Identity Center
-│   └── Billing & Cost Management
+AWS Organization (Root)
 │
-├── Security Account
-│   ├── AWS Security Hub
-│   ├── GuardDuty (위임 관리자)
-│   └── CloudTrail (중앙 로그)
+├── Management Account (루트 계정)
+│   ├── AWS Organizations 관리
+│   ├── AWS IAM Identity Center (SSO)
+│   ├── Billing & Cost Management
+│   └── Service Control Policies (SCPs)
 │
-├── Shared Services Account
-│   ├── ECR (컨테이너 레지스트리)
-│   ├── Terraform State (S3 + DynamoDB)
-│   └── Transit Gateway
+├── Security OU
+│   ├── Log Archive Account
+│   │   ├── CloudTrail 중앙 로그 (Organization Trail)
+│   │   ├── AWS Config 로그
+│   │   ├── VPC Flow Logs
+│   │   └── S3 Access Logs
+│   │
+│   └── Audit Account (Security Tooling)
+│       ├── AWS Security Hub (위임 관리자)
+│       ├── Amazon GuardDuty (위임 관리자)
+│       ├── AWS Config Aggregator
+│       ├── Amazon Detective
+│       └── Cross-Account 보안 감사 역할
 │
-└── Workload Accounts
+├── Infrastructure OU
+│   ├── Network Account
+│   │   ├── Transit Gateway
+│   │   ├── AWS Network Firewall
+│   │   ├── Route 53 Hosted Zones
+│   │   ├── Direct Connect / VPN
+│   │   └── 중앙 집중 Egress VPC
+│   │
+│   └── Shared Services Account
+│       ├── ECR (컨테이너 레지스트리)
+│       ├── Terraform State (S3 + DynamoDB)
+│       ├── CI/CD 파이프라인 (Jenkins/CodePipeline)
+│       ├── Artifact Repository
+│       └── AMI/Golden Image 관리
+│
+├── Sandbox OU
+│   └── Sandbox Account(s)
+│       └── 개발자 실험/테스트 환경
+│
+└── Workloads OU
     ├── Production Account ← 현재 구축 대상
+    │   ├── EKS Cluster
+    │   ├── RDS/ElastiCache
+    │   └── Application Workloads
+    │
     ├── Staging Account
+    │   └── Production 미러 환경
+    │
     └── Development Account
+        └── 개발 환경
 ```
+
+**OU별 역할:**
+
+| OU | 목적 | 주요 서비스 |
+| -- | ---- | ----------- |
+| Security OU | 보안 및 감사 중앙화 | CloudTrail, GuardDuty, Security Hub |
+| Infrastructure OU | 공유 인프라 관리 | Transit Gateway, ECR, CI/CD |
+| Sandbox OU | 실험/학습 환경 | 제한된 리소스, 자동 정리 |
+| Workloads OU | 실제 워크로드 운영 | EKS, RDS, 애플리케이션 |
+
+**계정 분리 원칙:**
+
+- 환경별 분리: Production / Staging / Development
+- 기능별 분리: Security / Network / Shared Services
+- 장애 격리: 계정 단위로 blast radius 제한
+- 비용 추적: 계정별 Cost Allocation
 
 ### 1.2 Terraform State 관리
 
