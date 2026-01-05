@@ -51,14 +51,6 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Create tfvars
-        run: |
-          cat > terraform.tfvars << 'EOF'
-          region      = "ap-northeast-2"
-          project     = "eks-prod"
-          environment = "prod"
-          EOF
-
       - name: Terraform Init
         run: terraform init
 
