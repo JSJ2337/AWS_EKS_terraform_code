@@ -69,16 +69,38 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Check if S3 bucket exists
+      - name: Check if backend resources exist
         id: check_bucket
         run: |
           BUCKET_NAME="${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+          TABLE_NAME="${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+
+          BUCKET_EXISTS=false
+          TABLE_EXISTS=false
+
+          # Check S3 bucket
           if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            BUCKET_EXISTS=true
+            echo "S3 bucket '$BUCKET_NAME' exists."
+          else
+            echo "S3 bucket '$BUCKET_NAME' does not exist."
+          fi
+
+          # Check DynamoDB table
+          if aws dynamodb describe-table --table-name "$TABLE_NAME" 2>/dev/null; then
+            TABLE_EXISTS=true
+            echo "DynamoDB table '$TABLE_NAME' exists."
+          else
+            echo "DynamoDB table '$TABLE_NAME' does not exist."
+          fi
+
+          # Both must exist to use S3 backend
+          if [ "$BUCKET_EXISTS" == "true" ] && [ "$TABLE_EXISTS" == "true" ]; then
             echo "bucket_exists=true" >> $GITHUB_OUTPUT
-            echo "S3 bucket '$BUCKET_NAME' exists. Using S3 backend."
+            echo "Both S3 bucket and DynamoDB table exist. Using S3 backend."
           else
             echo "bucket_exists=false" >> $GITHUB_OUTPUT
-            echo "S3 bucket '$BUCKET_NAME' does not exist. Using local backend for initial creation."
+            echo "Backend resources incomplete. Using local backend for creation."
           fi
 
       - name: Generate S3 backend config
