@@ -138,14 +138,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: tfplan
+          path: bootstrap/00-state-backend/tfplan
           retention-days: 1
 
       - name: Upload Plan Output
         uses: actions/upload-artifact@v4
         with:
           name: plan-output
-          path: plan_output.txt
+          path: bootstrap/00-state-backend/plan_output.txt
           retention-days: 1
 
       - name: Plan Summary
@@ -238,7 +238,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: .
+          path: bootstrap/00-state-backend
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
