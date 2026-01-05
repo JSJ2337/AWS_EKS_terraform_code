@@ -28,9 +28,9 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  TF_VERSION: '1.10.0'
-  TG_VERSION: '0.69.10'
-  TERRAGRUNT_NON_INTERACTIVE: true
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+  TG_NON_INTERACTIVE: true
 
 permissions:
   id-token: write
@@ -68,11 +68,11 @@ jobs:
 
       - name: Terragrunt Init
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt init
+        run: terragrunt run init
 
       - name: Terragrunt Destroy
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt destroy -auto-approve
+        run: terragrunt run destroy -auto-approve
 
       - name: Post Destroy Summary
         run: |

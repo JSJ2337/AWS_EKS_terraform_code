@@ -11,9 +11,9 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  TF_VERSION: '1.10.0'
-  TG_VERSION: '0.69.10'
-  TERRAGRUNT_NON_INTERACTIVE: true
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+  TG_NON_INTERACTIVE: true
 
 permissions:
   id-token: write
@@ -52,15 +52,15 @@ jobs:
           terragrunt --version
 
       - name: Terragrunt Init
-        run: terragrunt run-all init
+        run: terragrunt run --all init
 
       - name: Terragrunt Validate
-        run: terragrunt run-all validate
+        run: terragrunt run --all validate
 
       - name: Terragrunt Plan
         id: plan
         run: |
-          terragrunt run-all plan -out=tfplan 2>&1 | tee plan_output.txt
+          terragrunt run --all plan -out=tfplan 2>&1 | tee plan_output.txt
           echo "plan_output<<EOF" >> $GITHUB_OUTPUT
           cat plan_output.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

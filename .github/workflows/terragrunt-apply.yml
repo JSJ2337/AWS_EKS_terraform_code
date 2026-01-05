@@ -32,9 +32,9 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  TF_VERSION: '1.10.0'
-  TG_VERSION: '0.69.10'
-  TERRAGRUNT_NON_INTERACTIVE: true
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+  TG_NON_INTERACTIVE: true
 
 permissions:
   id-token: write
@@ -74,21 +74,21 @@ jobs:
 
       - name: Terragrunt Init (All)
         if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run-all init
+        run: terragrunt run --all init
 
       - name: Terragrunt Init (Single Layer)
         if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
         working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
-        run: terragrunt init
+        run: terragrunt run init
 
       - name: Terragrunt Apply (All)
         if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run-all apply -auto-approve
+        run: terragrunt run --all apply -auto-approve
 
       - name: Terragrunt Apply (Single Layer)
         if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
         working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
-        run: terragrunt apply -auto-approve
+        run: terragrunt run apply -auto-approve
 
       - name: Post Apply Summary
         run: |
