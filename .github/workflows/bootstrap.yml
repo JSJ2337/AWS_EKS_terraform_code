@@ -1,0 +1,96 @@
+name: Bootstrap State Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '실행할 작업'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      confirm_destroy:
+        description: 'Destroy 시 확인 (delete 입력)'
+        required: false
+        type: string
+
+env:
+  AWS_REGION: ap-northeast-2
+  TF_VERSION: '1.14.0'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap State Backend
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.action != 'destroy' || inputs.confirm_destroy == 'delete' }}
+    defaults:
+      run:
+        working-directory: bootstrap/00-state-backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Create tfvars
+        run: |
+          cat > terraform.tfvars << 'EOF'
+          region      = "ap-northeast-2"
+          project     = "eks-prod"
+          environment = "prod"
+          EOF
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        if: ${{ inputs.action == 'plan' }}
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: ${{ inputs.action == 'apply' }}
+        run: terraform apply -auto-approve
+
+      - name: Terraform Destroy
+        if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
+        run: terraform destroy -auto-approve
+
+      - name: Post Summary
+        run: |
+          echo "## Bootstrap State Backend - ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action:** ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.action }}" == "apply" ]; then
+            echo "### Created Resources" >> $GITHUB_STEP_SUMMARY
+            echo "- S3 Bucket: eks-prod-terraform-state-prod" >> $GITHUB_STEP_SUMMARY
+            echo "- DynamoDB Table: eks-prod-terraform-lock-prod" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  reject:
+    name: Destroy Rejected
+    runs-on: ubuntu-latest
+    if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy != 'delete' }}
+    steps:
+      - name: Reject
+        run: |
+          echo "Destroy rejected. 'delete' 입력이 필요합니다."
+          exit 1
