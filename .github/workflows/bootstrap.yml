@@ -12,13 +12,27 @@ on:
           - plan
           - apply
           - destroy
+      region:
+        description: 'AWS Region'
+        required: true
+        default: 'ap-northeast-2'
+        type: string
+      project:
+        description: 'Project Name'
+        required: true
+        default: 'eks-prod'
+        type: string
+      environment:
+        description: 'Environment Name'
+        required: true
+        default: 'prod'
+        type: string
       confirm_destroy:
         description: 'Destroy 시 확인 (delete 입력)'
         required: false
         type: string
 
 env:
-  AWS_REGION: ap-northeast-2
   TF_VERSION: '1.14.0'
 
 permissions:
@@ -43,7 +57,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ inputs.region }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -51,30 +65,116 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
+      - name: Check if S3 bucket exists
+        id: check_bucket
+        run: |
+          BUCKET_NAME="${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "bucket_exists=true" >> $GITHUB_OUTPUT
+            echo "S3 bucket '$BUCKET_NAME' exists. Using S3 backend."
+          else
+            echo "bucket_exists=false" >> $GITHUB_OUTPUT
+            echo "S3 bucket '$BUCKET_NAME' does not exist. Using local backend for initial creation."
+          fi
+
+      - name: Generate S3 backend config
+        if: steps.check_bucket.outputs.bucket_exists == 'true'
+        run: |
+          cat > backend.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket         = "${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+              key            = "bootstrap/00-state-backend/terraform.tfstate"
+              region         = "${{ inputs.region }}"
+              encrypt        = true
+              dynamodb_table = "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+            }
+          }
+          EOF
+          echo "Generated S3 backend configuration:"
+          cat backend.tf
+
       - name: Terraform Init
-        run: terraform init
+        run: |
+          if [ "${{ steps.check_bucket.outputs.bucket_exists }}" == "true" ]; then
+            terraform init \
+              -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
+              -backend-config="key=bootstrap/00-state-backend/terraform.tfstate" \
+              -backend-config="region=${{ inputs.region }}" \
+              -backend-config="encrypt=true" \
+              -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+          else
+            terraform init
+          fi
 
       - name: Terraform Plan
         if: ${{ inputs.action == 'plan' }}
-        run: terraform plan
+        run: |
+          terraform plan \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
 
       - name: Terraform Apply
         if: ${{ inputs.action == 'apply' }}
-        run: terraform apply -auto-approve
+        run: |
+          terraform apply -auto-approve \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
+
+      - name: Migrate state to S3 (First time only)
+        if: ${{ inputs.action == 'apply' && steps.check_bucket.outputs.bucket_exists == 'false' }}
+        run: |
+          echo "Migrating local state to S3 backend..."
+
+          # Generate backend config
+          cat > backend.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket         = "${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+              key            = "bootstrap/00-state-backend/terraform.tfstate"
+              region         = "${{ inputs.region }}"
+              encrypt        = true
+              dynamodb_table = "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+            }
+          }
+          EOF
+
+          # Re-init with S3 backend and migrate state
+          terraform init -migrate-state -force-copy \
+            -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
+            -backend-config="key=bootstrap/00-state-backend/terraform.tfstate" \
+            -backend-config="region=${{ inputs.region }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+
+          echo "State migration completed successfully!"
 
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
-        run: terraform destroy -auto-approve
+        run: |
+          terraform destroy -auto-approve \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
 
       - name: Post Summary
         run: |
           echo "## Bootstrap State Backend - ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Action:** ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ inputs.region }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ inputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend:** ${{ steps.check_bucket.outputs.bucket_exists == 'true' && 'S3' || 'Local → S3 (migrated)' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ inputs.action }}" == "apply" ]; then
-            echo "### Created Resources" >> $GITHUB_STEP_SUMMARY
-            echo "- S3 Bucket: eks-prod-terraform-state-prod" >> $GITHUB_STEP_SUMMARY
-            echo "- DynamoDB Table: eks-prod-terraform-lock-prod" >> $GITHUB_STEP_SUMMARY
+            echo "### Resources" >> $GITHUB_STEP_SUMMARY
+            echo "- S3 Bucket: \`${{ inputs.project }}-terraform-state-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- DynamoDB Table: \`${{ inputs.project }}-terraform-lock-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- State Key: \`bootstrap/00-state-backend/terraform.tfstate\`" >> $GITHUB_STEP_SUMMARY
           fi
 
   reject:
