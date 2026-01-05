@@ -40,11 +40,15 @@ permissions:
   contents: read
 
 jobs:
-  bootstrap:
-    name: Bootstrap State Backend
+  # =============================================================================
+  # Plan Job - 항상 먼저 실행
+  # =============================================================================
+  plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
-    environment: jsj_eks_prod
     if: ${{ inputs.action != 'destroy' || inputs.confirm_destroy == 'delete' }}
+    outputs:
+      bucket_exists: ${{ steps.check_bucket.outputs.bucket_exists }}
     defaults:
       run:
         working-directory: bootstrap/00-state-backend
@@ -94,6 +98,12 @@ jobs:
           echo "Generated S3 backend configuration:"
           cat backend.tf
 
+      - name: Disable prevent_destroy for Destroy
+        if: ${{ inputs.action == 'destroy' }}
+        run: |
+          echo "Disabling prevent_destroy lifecycle rules for destroy operation..."
+          sed -i 's/prevent_destroy = true/prevent_destroy = false/g' main.tf
+
       - name: Terraform Init
         run: |
           if [ "${{ steps.check_bucket.outputs.bucket_exists }}" == "true" ]; then
@@ -108,27 +118,97 @@ jobs:
           fi
 
       - name: Terraform Plan
-        if: ${{ inputs.action == 'plan' }}
+        id: plan
         run: |
-          terraform plan \
-            -var="region=${{ inputs.region }}" \
-            -var="project=${{ inputs.project }}" \
-            -var="environment=${{ inputs.environment }}"
+          if [ "${{ inputs.action }}" == "destroy" ]; then
+            terraform plan -destroy \
+              -var="region=${{ inputs.region }}" \
+              -var="project=${{ inputs.project }}" \
+              -var="environment=${{ inputs.environment }}" \
+              -out=tfplan 2>&1 | tee plan_output.txt
+          else
+            terraform plan \
+              -var="region=${{ inputs.region }}" \
+              -var="project=${{ inputs.project }}" \
+              -var="environment=${{ inputs.environment }}" \
+              -out=tfplan 2>&1 | tee plan_output.txt
+          fi
 
-      - name: Terraform Apply
-        if: ${{ inputs.action == 'apply' }}
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: bootstrap/00-state-backend/tfplan
+          retention-days: 1
+
+      - name: Upload Plan Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-output
+          path: bootstrap/00-state-backend/plan_output.txt
+          retention-days: 1
+
+      - name: Plan Summary
         run: |
-          terraform apply -auto-approve \
-            -var="region=${{ inputs.region }}" \
-            -var="project=${{ inputs.project }}" \
-            -var="environment=${{ inputs.environment }}"
+          echo "## Terraform Plan - ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ inputs.region }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ inputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend:** ${{ steps.check_bucket.outputs.bucket_exists == 'true' && 'S3' || 'Local (initial)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Plan Output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 plan_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Migrate state to S3 (First time only)
-        if: ${{ inputs.action == 'apply' && steps.check_bucket.outputs.bucket_exists == 'false' }}
+  # =============================================================================
+  # Approval Job - Apply/Destroy 전 승인 대기
+  # =============================================================================
+  approval:
+    name: Waiting for Approval
+    runs-on: ubuntu-latest
+    needs: plan
+    if: ${{ inputs.action == 'apply' || (inputs.action == 'destroy' && inputs.confirm_destroy == 'delete') }}
+    environment: jsj_eks_prod
+    steps:
+      - name: Approval Granted
         run: |
-          echo "Migrating local state to S3 backend..."
+          echo "✅ Approval granted for ${{ inputs.action }} operation"
+          echo "Proceeding with ${{ inputs.action }}..."
 
-          # Generate backend config
+  # =============================================================================
+  # Apply Job
+  # =============================================================================
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [plan, approval]
+    if: ${{ inputs.action == 'apply' }}
+    defaults:
+      run:
+        working-directory: bootstrap/00-state-backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Generate S3 backend config
+        if: needs.plan.outputs.bucket_exists == 'true'
+        run: |
           cat > backend.tf << 'EOF'
           terraform {
             backend "s3" {
@@ -141,7 +221,45 @@ jobs:
           }
           EOF
 
-          # Re-init with S3 backend and migrate state
+      - name: Terraform Init
+        run: |
+          if [ "${{ needs.plan.outputs.bucket_exists }}" == "true" ]; then
+            terraform init \
+              -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
+              -backend-config="key=bootstrap/00-state-backend/terraform.tfstate" \
+              -backend-config="region=${{ inputs.region }}" \
+              -backend-config="encrypt=true" \
+              -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+          else
+            terraform init
+          fi
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: bootstrap/00-state-backend
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Migrate state to S3 (First time only)
+        if: needs.plan.outputs.bucket_exists == 'false'
+        run: |
+          echo "Migrating local state to S3 backend..."
+
+          cat > backend.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket         = "${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+              key            = "bootstrap/00-state-backend/terraform.tfstate"
+              region         = "${{ inputs.region }}"
+              encrypt        = true
+              dynamodb_table = "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
+            }
+          }
+          EOF
+
           terraform init -migrate-state -force-copy \
             -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
             -backend-config="key=bootstrap/00-state-backend/terraform.tfstate" \
@@ -151,45 +269,89 @@ jobs:
 
           echo "State migration completed successfully!"
 
-      - name: Disable prevent_destroy for Destroy
-        if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
+      - name: Apply Summary
         run: |
-          echo "Disabling prevent_destroy lifecycle rules for destroy operation..."
+          echo "## ✅ Terraform Apply Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources Created" >> $GITHUB_STEP_SUMMARY
+          echo "- S3 Bucket: \`${{ inputs.project }}-terraform-state-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- DynamoDB Table: \`${{ inputs.project }}-terraform-lock-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- State Key: \`bootstrap/00-state-backend/terraform.tfstate\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Destroy Job
+  # =============================================================================
+  destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    needs: [plan, approval]
+    if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
+    defaults:
+      run:
+        working-directory: bootstrap/00-state-backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Disable prevent_destroy
+        run: |
           sed -i 's/prevent_destroy = true/prevent_destroy = false/g' main.tf
-          echo "Updated main.tf:"
-          grep -n "prevent_destroy" main.tf
+
+      - name: Terraform Init (Local backend for destroy)
+        run: |
+          # Destroy 시에는 로컬 backend 사용 (S3가 삭제되므로)
+          terraform init
+
+      - name: Import existing resources to local state
+        run: |
+          echo "Importing existing resources to local state..."
+          terraform import \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}" \
+            aws_s3_bucket.terraform_state "${{ inputs.project }}-terraform-state-${{ inputs.environment }}" || true
+
+          terraform import \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}" \
+            aws_dynamodb_table.terraform_lock "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}" || true
 
       - name: Terraform Destroy
-        if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
         run: |
-          # Migrate state to local before destroying (S3 will be deleted)
-          echo "Migrating state from S3 to local before destroy..."
-          rm -f backend.tf
-          terraform init -migrate-state -force-copy
-
           terraform destroy -auto-approve \
             -var="region=${{ inputs.region }}" \
             -var="project=${{ inputs.project }}" \
             -var="environment=${{ inputs.environment }}"
 
-      - name: Post Summary
+      - name: Destroy Summary
         run: |
-          echo "## Bootstrap State Backend - ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚠️ Terraform Destroy Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Region:** ${{ inputs.region }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Project:** ${{ inputs.project }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend:** ${{ steps.check_bucket.outputs.bucket_exists == 'true' && 'S3' || 'Local → S3 (migrated)' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources Destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "- S3 Bucket: \`${{ inputs.project }}-terraform-state-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- DynamoDB Table: \`${{ inputs.project }}-terraform-lock-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.action }}" == "apply" ]; then
-            echo "### Resources" >> $GITHUB_STEP_SUMMARY
-            echo "- S3 Bucket: \`${{ inputs.project }}-terraform-state-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- DynamoDB Table: \`${{ inputs.project }}-terraform-lock-${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- State Key: \`bootstrap/00-state-backend/terraform.tfstate\`" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
+  # =============================================================================
+  # Reject Job - Destroy 확인 실패
+  # =============================================================================
   reject:
     name: Destroy Rejected
     runs-on: ubuntu-latest
@@ -197,5 +359,5 @@ jobs:
     steps:
       - name: Reject
         run: |
-          echo "Destroy rejected. 'delete' 입력이 필요합니다."
+          echo "❌ Destroy rejected. 'delete' 입력이 필요합니다."
           exit 1
