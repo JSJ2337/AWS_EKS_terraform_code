@@ -41,7 +41,7 @@ locals {
   pod_subnet_cidrs      = ["10.0.100.0/22", "10.0.104.0/22"]
 
   # 단일 NAT Gateway 사용 여부 (비용 절감 시 true)
-  single_nat_gateway = false
+  single_nat_gateway = true
 
   # VPC Flow Logs 활성화
   enable_flow_logs = true
@@ -53,29 +53,29 @@ locals {
   # EKS 노드 그룹 설정
   ############################################################################
 
-  # System Node Group (CoreDNS, kube-proxy 등)
+  # System Node Group (CoreDNS, kube-proxy 등) - 테스트용 최소 사양
   system_node_group = {
-    instance_types = ["m6i.large"]
-    desired_size   = 2
-    min_size       = 2
-    max_size       = 4
+    instance_types = ["t3.small"]
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
   }
 
-  # Application Node Group
+  # Application Node Group - 테스트용 최소 사양
   application_node_group = {
-    instance_types = ["m6i.xlarge"]
-    desired_size   = 2
-    min_size       = 2
-    max_size       = 10
+    instance_types = ["t3.small"]
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
   }
 
   # Spot Node Group (비용 최적화, 선택적)
   spot_node_group = {
     enabled        = false
-    instance_types = ["m6i.xlarge", "m5.xlarge", "m5a.xlarge"]
-    desired_size   = 2
+    instance_types = ["t3.small", "t3.micro"]
+    desired_size   = 1
     min_size       = 0
-    max_size       = 10
+    max_size       = 2
   }
 
   ############################################################################
