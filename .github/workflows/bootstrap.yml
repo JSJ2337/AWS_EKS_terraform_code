@@ -151,9 +151,22 @@ jobs:
 
           echo "State migration completed successfully!"
 
+      - name: Disable prevent_destroy for Destroy
+        if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
+        run: |
+          echo "Disabling prevent_destroy lifecycle rules for destroy operation..."
+          sed -i 's/prevent_destroy = true/prevent_destroy = false/g' main.tf
+          echo "Updated main.tf:"
+          grep -n "prevent_destroy" main.tf
+
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' && inputs.confirm_destroy == 'delete' }}
         run: |
+          # Migrate state to local before destroying (S3 will be deleted)
+          echo "Migrating state from S3 to local before destroy..."
+          rm -f backend.tf
+          terraform init -migrate-state -force-copy
+
           terraform destroy -auto-approve \
             -var="region=${{ inputs.region }}" \
             -var="project=${{ inputs.project }}" \
