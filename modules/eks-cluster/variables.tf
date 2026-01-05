@@ -78,3 +78,9 @@ variable "cluster_log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default     = {}
+}

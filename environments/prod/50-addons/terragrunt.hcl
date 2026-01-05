@@ -41,4 +41,7 @@ inputs = {
   kube_proxy_version   = null
   ebs_csi_version      = null
   pod_identity_version = null
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

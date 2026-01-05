@@ -53,4 +53,7 @@ inputs = {
 
   enabled_cluster_log_types  = local.common.locals.enabled_cluster_log_types
   cluster_log_retention_days = local.common.locals.cluster_log_retention_days
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

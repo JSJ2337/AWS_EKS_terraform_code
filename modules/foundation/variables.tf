@@ -28,3 +28,9 @@ variable "create_eks_admin_role" {
   type        = bool
   default     = true
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default     = {}
+}

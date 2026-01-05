@@ -133,3 +133,9 @@ variable "spot_max_size" {
   type        = number
   default     = 10
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default     = {}
+}

@@ -93,3 +93,9 @@ variable "enable_cluster_autoscaler" {
   type        = bool
   default     = true
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default     = {}
+}

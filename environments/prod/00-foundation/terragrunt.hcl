@@ -7,6 +7,10 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+locals {
+  common = read_terragrunt_config(find_in_parent_folders("common.hcl"))
+}
+
 terraform {
   source = "${get_terragrunt_dir()}/../../../modules/foundation"
 }
@@ -17,4 +21,7 @@ inputs = {
 
   # IAM baseline roles
   create_eks_admin_role = true
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

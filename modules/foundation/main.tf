@@ -43,6 +43,8 @@ resource "aws_kms_key" "eks" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_kms_alias" "eks" {
@@ -78,6 +80,8 @@ resource "aws_iam_role" "eks_admin" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "eks_admin" {

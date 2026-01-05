@@ -36,4 +36,7 @@ inputs = {
   enable_pod_subnets = local.common.locals.enable_pod_subnets
   single_nat_gateway = local.common.locals.single_nat_gateway
   enable_flow_logs   = local.common.locals.enable_flow_logs
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

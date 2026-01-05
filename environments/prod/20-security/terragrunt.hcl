@@ -26,4 +26,7 @@ dependency "networking" {
 inputs = {
   vpc_id       = dependency.networking.outputs.vpc_id
   cluster_name = local.common.locals.cluster_name
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

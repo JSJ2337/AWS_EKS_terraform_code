@@ -75,3 +75,9 @@ variable "enable_flow_logs" {
   type        = bool
   default     = true
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default     = {}
+}

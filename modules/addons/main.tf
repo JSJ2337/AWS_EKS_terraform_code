@@ -22,6 +22,8 @@ resource "aws_eks_addon" "vpc_cni" {
       WARM_PREFIX_TARGET       = "1"
     }
   })
+
+  tags = var.tags
 }
 
 ################################################################################
@@ -34,6 +36,8 @@ resource "aws_eks_addon" "coredns" {
   addon_version               = var.coredns_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  tags = var.tags
 
   depends_on = [aws_eks_addon.vpc_cni]
 }
@@ -48,6 +52,8 @@ resource "aws_eks_addon" "kube_proxy" {
   addon_version               = var.kube_proxy_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  tags = var.tags
 }
 
 ################################################################################
@@ -63,6 +69,8 @@ resource "aws_eks_addon" "ebs_csi" {
   service_account_role_arn    = aws_iam_role.ebs_csi[0].arn
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  tags = var.tags
 
   depends_on = [aws_eks_addon.vpc_cni]
 }
@@ -90,6 +98,8 @@ resource "aws_iam_role" "ebs_csi" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "ebs_csi" {
@@ -111,6 +121,8 @@ resource "aws_eks_addon" "pod_identity_agent" {
   addon_version               = var.pod_identity_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  tags = var.tags
 }
 
 ################################################################################
@@ -140,6 +152,8 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_policy" "aws_load_balancer_controller" {
@@ -148,6 +162,8 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
   name = "${var.cluster_name}-aws-lb-controller-policy"
 
   policy = file("${path.module}/policies/aws-load-balancer-controller-policy.json")
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
@@ -184,6 +200,8 @@ resource "aws_iam_role" "cluster_autoscaler" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_policy" "cluster_autoscaler" {
@@ -225,6 +243,8 @@ resource "aws_iam_policy" "cluster_autoscaler" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "cluster_autoscaler" {

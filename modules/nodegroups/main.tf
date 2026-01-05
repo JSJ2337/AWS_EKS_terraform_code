@@ -37,9 +37,9 @@ resource "aws_eks_node_group" "system" {
     effect = "PREFER_NO_SCHEDULE"
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-system-node-group"
-  }
+  })
 
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]
@@ -75,9 +75,9 @@ resource "aws_eks_node_group" "application" {
     "node-type" = "application"
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-application-node-group"
-  }
+  })
 
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]
@@ -120,9 +120,9 @@ resource "aws_eks_node_group" "spot" {
     effect = "NO_SCHEDULE"
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-spot-node-group"
-  }
+  })
 
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]

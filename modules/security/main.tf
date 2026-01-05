@@ -12,9 +12,9 @@ resource "aws_security_group" "eks_cluster" {
   description = "Security group for EKS cluster control plane"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-eks-cluster-sg-${var.environment}"
-  }
+  })
 }
 
 resource "aws_security_group_rule" "eks_cluster_ingress_nodes" {
@@ -46,10 +46,10 @@ resource "aws_security_group" "eks_nodes" {
   description = "Security group for EKS worker nodes"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.tags, {
     Name                                        = "${var.project}-eks-nodes-sg-${var.environment}"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-  }
+  })
 }
 
 resource "aws_security_group_rule" "eks_nodes_ingress_self" {
@@ -101,9 +101,9 @@ resource "aws_security_group" "alb" {
   description = "Security group for Application Load Balancer"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-alb-sg-${var.environment}"
-  }
+  })
 }
 
 resource "aws_security_group_rule" "alb_ingress_http" {
@@ -155,9 +155,9 @@ resource "aws_security_group" "rds" {
   description = "Security group for RDS"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-rds-sg-${var.environment}"
-  }
+  })
 }
 
 resource "aws_security_group_rule" "rds_ingress_nodes" {
@@ -179,9 +179,9 @@ resource "aws_security_group" "elasticache" {
   description = "Security group for ElastiCache"
   vpc_id      = var.vpc_id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-elasticache-sg-${var.environment}"
-  }
+  })
 }
 
 resource "aws_security_group_rule" "elasticache_ingress_nodes" {
@@ -213,6 +213,8 @@ resource "aws_iam_role" "eks_cluster" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
@@ -244,6 +246,8 @@ resource "aws_iam_role" "eks_nodes" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {

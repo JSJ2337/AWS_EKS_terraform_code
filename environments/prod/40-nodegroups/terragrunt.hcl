@@ -63,4 +63,7 @@ inputs = {
   spot_desired_size      = local.common.locals.spot_node_group.desired_size
   spot_min_size          = local.common.locals.spot_node_group.min_size
   spot_max_size          = local.common.locals.spot_node_group.max_size
+
+  # Common tags
+  tags = local.common.locals.common_tags
 }

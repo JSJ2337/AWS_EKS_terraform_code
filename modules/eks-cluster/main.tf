@@ -36,9 +36,9 @@ resource "aws_eks_cluster" "main" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = var.cluster_name
-  }
+  })
 
   depends_on = [
     var.cluster_role_arn
@@ -58,9 +58,9 @@ resource "aws_iam_openid_connect_provider" "eks" {
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-oidc"
-  }
+  })
 }
 
 ################################################################################

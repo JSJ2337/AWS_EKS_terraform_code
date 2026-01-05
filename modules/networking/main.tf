@@ -12,9 +12,9 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-vpc-${var.environment}"
-  }
+  })
 }
 
 ################################################################################
@@ -24,9 +24,9 @@ resource "aws_vpc" "main" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-igw-${var.environment}"
-  }
+  })
 }
 
 ################################################################################
@@ -41,11 +41,11 @@ resource "aws_subnet" "public" {
   availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
 
-  tags = {
+  tags = merge(var.tags, {
     Name                                        = "${var.project}-public-${var.availability_zones[count.index]}-${var.environment}"
     "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
-  }
+  })
 }
 
 ################################################################################
@@ -59,11 +59,11 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = var.availability_zones[count.index]
 
-  tags = {
+  tags = merge(var.tags, {
     Name                                        = "${var.project}-private-${var.availability_zones[count.index]}-${var.environment}"
     "kubernetes.io/role/internal-elb"           = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
-  }
+  })
 }
 
 ################################################################################
@@ -77,9 +77,9 @@ resource "aws_subnet" "database" {
   cidr_block        = var.database_subnet_cidrs[count.index]
   availability_zone = var.availability_zones[count.index]
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-database-${var.availability_zones[count.index]}-${var.environment}"
-  }
+  })
 }
 
 ################################################################################
@@ -93,9 +93,9 @@ resource "aws_subnet" "pod" {
   cidr_block        = var.pod_subnet_cidrs[count.index]
   availability_zone = var.availability_zones[count.index]
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-pod-${var.availability_zones[count.index]}-${var.environment}"
-  }
+  })
 }
 
 ################################################################################
@@ -107,9 +107,9 @@ resource "aws_eip" "nat" {
 
   domain = "vpc"
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-nat-eip-${count.index + 1}-${var.environment}"
-  }
+  })
 
   depends_on = [aws_internet_gateway.main]
 }
@@ -124,9 +124,9 @@ resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-nat-${count.index + 1}-${var.environment}"
-  }
+  })
 
   depends_on = [aws_internet_gateway.main]
 }
@@ -143,9 +143,9 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-public-rt-${var.environment}"
-  }
+  })
 }
 
 resource "aws_route_table_association" "public" {
@@ -169,9 +169,9 @@ resource "aws_route_table" "private" {
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
 
-  tags = {
+  tags = merge(var.tags, {
     Name = var.single_nat_gateway ? "${var.project}-private-rt-${var.environment}" : "${var.project}-private-rt-${var.availability_zones[count.index]}-${var.environment}"
-  }
+  })
 }
 
 resource "aws_route_table_association" "private" {
@@ -188,9 +188,9 @@ resource "aws_route_table_association" "private" {
 resource "aws_route_table" "database" {
   vpc_id = aws_vpc.main.id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-database-rt-${var.environment}"
-  }
+  })
 }
 
 resource "aws_route_table_association" "database" {
@@ -212,9 +212,9 @@ resource "aws_flow_log" "main" {
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.project}-flow-logs-${var.environment}"
-  }
+  })
 }
 
 resource "aws_cloudwatch_log_group" "flow_logs" {
