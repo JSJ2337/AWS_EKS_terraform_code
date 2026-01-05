@@ -124,29 +124,13 @@ jobs:
             terraform plan -destroy \
               -var="region=${{ inputs.region }}" \
               -var="project=${{ inputs.project }}" \
-              -var="environment=${{ inputs.environment }}" \
-              -out=tfplan 2>&1 | tee plan_output.txt
+              -var="environment=${{ inputs.environment }}" 2>&1 | tee plan_output.txt
           else
             terraform plan \
               -var="region=${{ inputs.region }}" \
               -var="project=${{ inputs.project }}" \
-              -var="environment=${{ inputs.environment }}" \
-              -out=tfplan 2>&1 | tee plan_output.txt
+              -var="environment=${{ inputs.environment }}" 2>&1 | tee plan_output.txt
           fi
-
-      - name: Upload Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: bootstrap/00-state-backend/tfplan
-          retention-days: 1
-
-      - name: Upload Plan Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: plan-output
-          path: bootstrap/00-state-backend/plan_output.txt
-          retention-days: 1
 
       - name: Plan Summary
         run: |
@@ -158,7 +142,7 @@ jobs:
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend:** ${{ steps.check_bucket.outputs.bucket_exists == 'true' && 'S3' || 'Local (initial)' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Plan Output" >> $GITHUB_STEP_SUMMARY
+          echo "### Plan Output (last 50 lines)" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           tail -50 plan_output.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -179,7 +163,7 @@ jobs:
           echo "Proceeding with ${{ inputs.action }}..."
 
   # =============================================================================
-  # Apply Job
+  # Apply Job - Plan 다시 실행 후 Apply
   # =============================================================================
   apply:
     name: Terraform Apply
@@ -234,14 +218,20 @@ jobs:
             terraform init
           fi
 
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: bootstrap/00-state-backend
+      - name: Terraform Plan (Verify)
+        run: |
+          echo "Running plan to verify changes before apply..."
+          terraform plan \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: |
+          terraform apply -auto-approve \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
 
       - name: Migrate state to S3 (First time only)
         if: needs.plan.outputs.bucket_exists == 'false'
@@ -314,7 +304,6 @@ jobs:
 
       - name: Terraform Init (Local backend for destroy)
         run: |
-          # Destroy 시에는 로컬 backend 사용 (S3가 삭제되므로)
           terraform init
 
       - name: Import existing resources to local state
@@ -331,6 +320,14 @@ jobs:
             -var="project=${{ inputs.project }}" \
             -var="environment=${{ inputs.environment }}" \
             aws_dynamodb_table.terraform_lock "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}" || true
+
+      - name: Terraform Plan (Destroy)
+        run: |
+          echo "Running destroy plan to verify..."
+          terraform plan -destroy \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
 
       - name: Terraform Destroy
         run: |
