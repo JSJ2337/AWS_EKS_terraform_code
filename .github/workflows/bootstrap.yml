@@ -320,18 +320,40 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Disable prevent_destroy and enable force_destroy
+      - name: Empty S3 bucket (delete all versions and delete markers)
         run: |
-          # Disable prevent_destroy
+          BUCKET_NAME="${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
+
+          echo "Deleting all object versions from bucket: $BUCKET_NAME"
+
+          # Delete all object versions
+          aws s3api list-object-versions --bucket "$BUCKET_NAME" --output json | \
+            jq -r '.Versions[]? | "\(.Key)\t\(.VersionId)"' | \
+            while IFS=$'\t' read -r key version_id; do
+              if [ -n "$key" ] && [ -n "$version_id" ]; then
+                echo "Deleting version: $key ($version_id)"
+                aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version_id" || true
+              fi
+            done
+
+          # Delete all delete markers
+          echo "Deleting all delete markers..."
+          aws s3api list-object-versions --bucket "$BUCKET_NAME" --output json | \
+            jq -r '.DeleteMarkers[]? | "\(.Key)\t\(.VersionId)"' | \
+            while IFS=$'\t' read -r key version_id; do
+              if [ -n "$key" ] && [ -n "$version_id" ]; then
+                echo "Deleting marker: $key ($version_id)"
+                aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version_id" || true
+              fi
+            done
+
+          echo "Bucket emptied successfully!"
+
+      - name: Disable prevent_destroy
+        run: |
           sed -i 's/prevent_destroy = true/prevent_destroy = false/g' main.tf
-
-          # Add force_destroy = true to S3 bucket for deleting versioned objects
-          sed -i '/resource "aws_s3_bucket" "terraform_state" {/,/^}/ {
-            /bucket = /a\  force_destroy = true
-          }' main.tf
-
           echo "Updated main.tf:"
-          grep -A5 'resource "aws_s3_bucket"' main.tf
+          cat main.tf
 
       - name: Terraform Init (Local backend for destroy)
         run: |
