@@ -13,7 +13,7 @@ env:
   AWS_REGION: ap-northeast-2
   TF_VERSION: '1.10.0'
   TG_VERSION: '0.69.10'
-  TG_NON_INTERACTIVE: true
+  TERRAGRUNT_NON_INTERACTIVE: true
 
 permissions:
   id-token: write
