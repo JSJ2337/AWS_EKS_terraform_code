@@ -1,6 +1,7 @@
 name: Terragrunt Plan
 
 on:
+  # PR 생성 시 자동 실행
   pull_request:
     branches:
       - main
@@ -8,6 +9,18 @@ on:
       - 'environments/**'
       - 'modules/**'
       - '.github/workflows/terragrunt-*.yml'
+
+  # main 브랜치에 push 시 자동 실행
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/**'
+      - 'modules/**'
+      - '.github/workflows/terragrunt-*.yml'
+
+  # 수동 실행 가능
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-northeast-2
@@ -90,6 +103,21 @@ jobs:
               repo: context.repo.repo,
               body: output
             })
+
+      - name: Plan Summary (Push)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "## Terragrunt Plan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Plan Output (last 100 lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -100 plan_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Plan Status
         if: steps.plan.outcome == 'failure'
