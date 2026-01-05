@@ -320,9 +320,18 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Disable prevent_destroy
+      - name: Disable prevent_destroy and enable force_destroy
         run: |
+          # Disable prevent_destroy
           sed -i 's/prevent_destroy = true/prevent_destroy = false/g' main.tf
+
+          # Add force_destroy = true to S3 bucket for deleting versioned objects
+          sed -i '/resource "aws_s3_bucket" "terraform_state" {/,/^}/ {
+            /bucket = /a\  force_destroy = true
+          }' main.tf
+
+          echo "Updated main.tf:"
+          grep -A5 'resource "aws_s3_bucket"' main.tf
 
       - name: Terraform Init (Local backend for destroy)
         run: |
