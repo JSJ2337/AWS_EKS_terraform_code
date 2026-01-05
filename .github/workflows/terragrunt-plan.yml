@@ -51,15 +51,15 @@ jobs:
           terragrunt --version
 
       - name: Terragrunt Init
-        run: terragrunt run-all init --non-interactive
+        run: terragrunt run --all init --non-interactive
 
       - name: Terragrunt Validate
-        run: terragrunt run-all validate --non-interactive
+        run: terragrunt run --all validate --non-interactive
 
       - name: Terragrunt Plan
         id: plan
         run: |
-          terragrunt run-all plan --non-interactive -out=tfplan 2>&1 | tee plan_output.txt
+          terragrunt run --all plan --non-interactive -out=tfplan 2>&1 | tee plan_output.txt
           echo "plan_output<<EOF" >> $GITHUB_OUTPUT
           cat plan_output.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

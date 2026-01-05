@@ -67,11 +67,11 @@ jobs:
 
       - name: Terragrunt Init
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt init --non-interactive
+        run: terragrunt run init --non-interactive
 
       - name: Terragrunt Destroy
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt destroy --non-interactive -auto-approve
+        run: terragrunt run destroy --non-interactive -auto-approve
 
       - name: Post Destroy Summary
         run: |
