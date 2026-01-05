@@ -28,8 +28,9 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  TF_VERSION: '1.14.0'
-  TG_VERSION: '0.96.0'
+  TF_VERSION: '1.10.0'
+  TG_VERSION: '0.69.10'
+  TG_NON_INTERACTIVE: true
 
 permissions:
   id-token: write
@@ -67,15 +68,15 @@ jobs:
 
       - name: Terragrunt Init
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt run init --non-interactive
+        run: terragrunt init
 
       - name: Terragrunt Destroy
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
-        run: terragrunt run destroy --non-interactive -auto-approve
+        run: terragrunt destroy -auto-approve
 
       - name: Post Destroy Summary
         run: |
-          echo "## ⚠️ Terragrunt Destroy Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## Terragrunt Destroy Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Layer:** ${{ inputs.layer }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
@@ -87,5 +88,5 @@ jobs:
     steps:
       - name: Reject
         run: |
-          echo "❌ Destroy rejected. 'delete' 입력이 필요합니다."
+          echo "Destroy rejected. 'delete' 입력이 필요합니다."
           exit 1
