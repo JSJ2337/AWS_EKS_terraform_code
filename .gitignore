@@ -1,0 +1,34 @@
+# Claude Code 설정
+CLAUDE.md
+.claude/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Terragrunt
+.terragrunt-cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Credentials (절대 커밋 금지)
+*.pem
+*.key
+credentials*
+.env
+.env.*
