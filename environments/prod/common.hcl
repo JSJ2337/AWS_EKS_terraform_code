@@ -138,7 +138,7 @@ locals {
 
     # 모니터링 설정
     monitoring_interval                   = 60
-    performance_insights_enabled          = true
+    performance_insights_enabled          = false  # db.t3 인스턴스에서 미지원
     performance_insights_retention_period = 7
 
     # CloudWatch 로그
