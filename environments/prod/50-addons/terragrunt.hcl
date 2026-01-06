@@ -22,6 +22,7 @@ dependency "eks_cluster" {
     oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/mock"
     oidc_provider_id  = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
   }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 inputs = {

@@ -20,6 +20,7 @@ dependency "foundation" {
   mock_outputs = {
     kms_key_arn = "arn:aws:kms:ap-northeast-2:123456789012:key/mock-key"
   }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 dependency "networking" {
@@ -28,6 +29,7 @@ dependency "networking" {
   mock_outputs = {
     private_subnet_ids = ["subnet-mock-1", "subnet-mock-2"]
   }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 dependency "security" {
@@ -37,6 +39,7 @@ dependency "security" {
     eks_cluster_security_group_id = "sg-mock"
     eks_cluster_role_arn          = "arn:aws:iam::123456789012:role/mock-role"
   }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 inputs = {

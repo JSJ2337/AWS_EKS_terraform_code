@@ -21,6 +21,7 @@ dependency "networking" {
   mock_outputs = {
     vpc_id = "vpc-mock"
   }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 inputs = {
