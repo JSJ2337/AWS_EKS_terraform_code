@@ -42,6 +42,16 @@ dependency "security" {
   mock_outputs_merge_strategy_with_state = "shallow"
 }
 
+# CloudWatch Log Group이 EKS보다 먼저 생성되어야 함
+dependency "cloudwatch" {
+  config_path = "../05-cloudwatch"
+
+  mock_outputs = {
+    eks_log_group_name = "/aws/eks/mock-cluster/cluster"
+  }
+  mock_outputs_merge_strategy_with_state = "shallow"
+}
+
 inputs = {
   cluster_name              = local.common.locals.cluster_name
   cluster_version           = local.common.locals.cluster_version

@@ -15,6 +15,7 @@ on:
           - 30-eks-cluster
           - 20-security
           - 10-networking
+          - 05-cloudwatch
           - 00-foundation
       environment:
         description: '환경'
@@ -110,6 +111,13 @@ jobs:
           terragrunt run init
           terragrunt run -- destroy -auto-approve
 
+      - name: Destroy 05-cloudwatch
+        working-directory: environments/${{ inputs.environment }}/05-cloudwatch
+        run: |
+          echo ">>> Destroying 05-cloudwatch..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
       - name: Destroy 00-foundation
         working-directory: environments/${{ inputs.environment }}/00-foundation
         run: |
@@ -121,7 +129,7 @@ jobs:
         run: |
           echo "## Terragrunt Destroy All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers destroyed:** 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 00-foundation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers destroyed:** 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   destroy-single:

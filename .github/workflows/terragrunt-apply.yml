@@ -12,6 +12,7 @@ on:
         options:
           - all
           - 00-foundation
+          - 05-cloudwatch
           - 10-networking
           - 20-security
           - 30-eks-cluster

@@ -63,13 +63,3 @@ resource "aws_iam_openid_connect_provider" "eks" {
   })
 }
 
-################################################################################
-# CloudWatch Log Group for EKS
-################################################################################
-
-resource "aws_cloudwatch_log_group" "eks" {
-  count = length(var.enabled_cluster_log_types) > 0 ? 1 : 0
-
-  name              = "/aws/eks/${var.cluster_name}/cluster"
-  retention_in_days = var.cluster_log_retention_days
-}
