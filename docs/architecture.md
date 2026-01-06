@@ -206,7 +206,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph EKSCluster["EKS Cluster"]
+    subgraph EKSCluster["EKS Cluster (jsj-eks-cluster v1.31)"]
         subgraph ControlPlane["Control Plane (AWS Managed)"]
             API[API Server]
             ETCD[(etcd)]
@@ -216,35 +216,43 @@ flowchart TB
 
         subgraph DataPlane["Data Plane"]
             subgraph SystemNG["System Node Group"]
-                SYS1[m6i.large]
-                SYS2[m6i.large]
+                SYS1[t3.small<br/>min:1 max:2]
             end
 
             subgraph AppNG["Application Node Group"]
-                APP1[m6i.xlarge]
-                APP2[m6i.xlarge]
-                APP3[m6i.xlarge]
-            end
-
-            subgraph SpotNG["Spot Node Group"]
-                SPOT1[m6i.xlarge<br/>Spot]
-                SPOT2[m6i.xlarge<br/>Spot]
+                APP1[t3.small<br/>min:1 max:3]
             end
         end
     end
 
     subgraph Addons["EKS Add-ons"]
-        CNI[VPC CNI]
-        DNS[CoreDNS]
-        PROXY[kube-proxy]
-        EBS[EBS CSI]
-        LBC[AWS LB Controller]
-        CA[Cluster Autoscaler]
+        CNI[VPC CNI v1.19.2]
+        DNS[CoreDNS v1.11.4]
+        PROXY[kube-proxy v1.31.3]
+        EBS[EBS CSI v1.38.1]
+        POD_ID[Pod Identity v1.3.5]
     end
 
     ControlPlane --> DataPlane
     DataPlane --> Addons
 ```
+
+### 현재 노드 그룹 설정
+
+| 노드 그룹 | 인스턴스 타입 | Min | Max | 용도 |
+| --------- | ------------- | --- | --- | ---- |
+| system | t3.small | 1 | 2 | 시스템 컴포넌트 |
+| app | t3.small | 1 | 3 | 애플리케이션 워크로드 |
+
+### 현재 EKS 애드온
+
+| 애드온 | 버전 | 상태 |
+| ------ | ---- | ---- |
+| vpc-cni | v1.19.2 | Active |
+| coredns | v1.11.4 | Active |
+| kube-proxy | v1.31.3 | Active |
+| aws-ebs-csi-driver | v1.38.1 | Active |
+| eks-pod-identity-agent | v1.3.5 | Active |
 
 ## State 관리
 
