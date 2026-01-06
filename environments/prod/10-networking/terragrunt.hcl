@@ -21,7 +21,7 @@ dependency "foundation" {
   mock_outputs = {
     kms_key_arn = "arn:aws:kms:ap-northeast-2:123456789012:key/mock-key"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_merge_strategy_with_state = "shallow"
 }
 
 inputs = {

@@ -20,7 +20,7 @@ dependency "networking" {
   mock_outputs = {
     private_subnet_ids = ["subnet-mock-1", "subnet-mock-2"]
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_merge_strategy_with_state = "shallow"
 }
 
 dependency "security" {
@@ -29,7 +29,7 @@ dependency "security" {
   mock_outputs = {
     eks_nodes_role_arn = "arn:aws:iam::123456789012:role/mock-role"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_merge_strategy_with_state = "shallow"
 }
 
 dependency "eks_cluster" {
@@ -38,7 +38,7 @@ dependency "eks_cluster" {
   mock_outputs = {
     cluster_name = "eks-prod-cluster"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_merge_strategy_with_state = "shallow"
 }
 
 inputs = {
