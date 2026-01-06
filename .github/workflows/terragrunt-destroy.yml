@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - all
           - 60-database
           - 50-addons
           - 40-nodegroups
@@ -38,11 +39,96 @@ permissions:
   contents: read
 
 jobs:
-  destroy:
-    name: Terragrunt Destroy
+  destroy-all:
+    name: Destroy All Layers (역순)
     runs-on: ubuntu-latest
     environment: jsj_eks_prod
-    if: ${{ inputs.confirm == 'delete' }}
+    if: ${{ inputs.confirm == 'delete' && inputs.layer == 'all' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Destroy 60-database
+        working-directory: environments/${{ inputs.environment }}/60-database
+        run: |
+          echo ">>> Destroying 60-database..."
+          terragrunt run init || true
+          terragrunt run -- destroy -auto-approve || echo "60-database not found or already destroyed"
+
+      - name: Destroy 50-addons
+        working-directory: environments/${{ inputs.environment }}/50-addons
+        run: |
+          echo ">>> Destroying 50-addons..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Destroy 40-nodegroups
+        working-directory: environments/${{ inputs.environment }}/40-nodegroups
+        run: |
+          echo ">>> Destroying 40-nodegroups..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Destroy 30-eks-cluster
+        working-directory: environments/${{ inputs.environment }}/30-eks-cluster
+        run: |
+          echo ">>> Destroying 30-eks-cluster..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Destroy 20-security
+        working-directory: environments/${{ inputs.environment }}/20-security
+        run: |
+          echo ">>> Destroying 20-security..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Destroy 10-networking
+        working-directory: environments/${{ inputs.environment }}/10-networking
+        run: |
+          echo ">>> Destroying 10-networking..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Destroy 00-foundation
+        working-directory: environments/${{ inputs.environment }}/00-foundation
+        run: |
+          echo ">>> Destroying 00-foundation..."
+          terragrunt run init
+          terragrunt run -- destroy -auto-approve
+
+      - name: Post Destroy Summary
+        run: |
+          echo "## Terragrunt Destroy All Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers destroyed:** 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 00-foundation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  destroy-single:
+    name: Destroy Single Layer
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.confirm == 'delete' && inputs.layer != 'all' }}
 
     steps:
       - name: Checkout

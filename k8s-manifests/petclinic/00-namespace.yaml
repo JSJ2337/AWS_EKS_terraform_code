@@ -1,0 +1,10 @@
+################################################################################
+# PetClinic Namespace
+################################################################################
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: petclinic
+  labels:
+    app: petclinic
+    tier: application
