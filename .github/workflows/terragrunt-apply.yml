@@ -17,6 +17,7 @@ on:
           - 30-eks-cluster
           - 40-nodegroups
           - 50-addons
+          - 60-database
       environment:
         description: '환경'
         required: true

@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - 60-database
           - 50-addons
           - 40-nodegroups
           - 30-eks-cluster
