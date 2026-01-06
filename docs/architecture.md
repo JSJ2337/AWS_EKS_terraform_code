@@ -116,7 +116,8 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-    F[00-foundation] --> N[10-networking]
+    F[00-foundation] --> CW[05-cloudwatch]
+    CW --> N[10-networking]
     N --> S[20-security]
     S --> EKS[30-eks-cluster]
     EKS --> NG[40-nodegroups]
@@ -132,6 +133,7 @@ flowchart TD
 
     N -.->|VPC Endpoints| MO
     S -.->|Security Groups| MO
+    CW -.->|Log Groups| EKS
 ```
 
 ### 레이어별 설명
@@ -139,6 +141,7 @@ flowchart TD
 | 레이어 | 목적 | 주요 리소스 |
 | ------ | ---- | ----------- |
 | 00-foundation | AWS 기본 설정 | IAM, KMS, S3 State Bucket |
+| 05-cloudwatch | CloudWatch 로그 그룹 | EKS, ECS, EC2, Lambda, VPC Log Groups |
 | 10-networking | 네트워크 인프라 | VPC, Subnet, NAT GW, Route Table |
 | 20-security | 보안 설정 | Security Group, IAM Role, IRSA |
 | 30-eks-cluster | EKS 컨트롤 플레인 | EKS Cluster, OIDC Provider |

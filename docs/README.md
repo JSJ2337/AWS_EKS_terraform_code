@@ -37,15 +37,17 @@ AWS_EKS_terraform_code/
 ├── modules/                      # Terraform 모듈
 │   ├── networking/              # VPC, 서브넷, NAT, IGW
 │   ├── security/                # Security Groups, IAM
+│   ├── cloudwatch/              # CloudWatch Log Groups (EKS, ECS, EC2, Lambda, VPC)
 │   ├── eks-cluster/             # EKS 컨트롤 플레인
 │   ├── eks-nodegroup/           # 워커 노드 그룹
 │   ├── eks-addons/              # EKS 애드온 (vpc-cni, coredns 등)
 │   ├── aurora-mysql/            # Aurora MySQL 클러스터
-│   └── foundation/              # KMS, CloudWatch Log Group
+│   └── foundation/              # KMS
 │
 ├── environments/                 # 환경별 구성
 │   └── prod/                    # 프로덕션 환경
 │       ├── 00-foundation/       # KMS, 기본 설정
+│       ├── 05-cloudwatch/       # CloudWatch Log Groups
 │       ├── 10-networking/       # VPC, 서브넷
 │       ├── 20-security/         # Security Groups
 │       ├── 30-eks-cluster/      # EKS 클러스터
@@ -137,7 +139,7 @@ kubectl describe node <node-name>
 
 - 레이어 선택: all (역순 삭제), 60-database ~ 00-foundation
 - 삭제 확인: `delete` 입력 필수
-- 삭제 순서: 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 00-foundation
+- 삭제 순서: 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation
 
 ## 환경 변수
 
