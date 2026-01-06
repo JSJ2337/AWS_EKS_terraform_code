@@ -109,7 +109,7 @@ locals {
   aurora = {
     # 클러스터 기본 설정
     cluster_identifier = "${local.project}-aurora-mysql"
-    engine_version     = "8.0.mysql_aurora.3.05.2"
+    engine_version     = "8.0.mysql_aurora.3.08.0"
     database_name      = "petclinic"
     master_username    = "admin"
 
