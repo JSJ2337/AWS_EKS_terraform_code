@@ -13,7 +13,7 @@ locals {
   region = "ap-northeast-2"
 
   # 프로젝트명 (리소스 네이밍에 사용)
-  project = "eks-prod"
+  project = "jsj-eks"
 
   # 환경명
   environment = "prod"
