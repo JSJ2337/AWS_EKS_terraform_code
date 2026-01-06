@@ -65,15 +65,15 @@ jobs:
           terragrunt --version
 
       - name: Terragrunt Init
-        run: terragrunt run --all init
+        run: terragrunt run-all init
 
       - name: Terragrunt Validate
-        run: terragrunt run --all validate
+        run: terragrunt run-all validate
 
       - name: Terragrunt Plan
         id: plan
         run: |
-          terragrunt run --all plan -out=tfplan 2>&1 | tee plan_output.txt
+          terragrunt run-all plan 2>&1 | tee plan_output.txt
           echo "plan_output<<EOF" >> $GITHUB_OUTPUT
           cat plan_output.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

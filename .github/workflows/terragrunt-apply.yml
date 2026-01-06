@@ -74,21 +74,21 @@ jobs:
 
       - name: Terragrunt Init (All)
         if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run --all init
+        run: terragrunt run-all init
 
       - name: Terragrunt Init (Single Layer)
         if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
         working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
-        run: terragrunt run init
+        run: terragrunt init
 
       - name: Terragrunt Apply (All)
         if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run --all apply -auto-approve
+        run: terragrunt run-all apply --terragrunt-non-interactive
 
       - name: Terragrunt Apply (Single Layer)
         if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
         working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
-        run: terragrunt run apply -auto-approve
+        run: terragrunt apply -auto-approve
 
       - name: Post Apply Summary
         run: |
