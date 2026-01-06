@@ -103,6 +103,49 @@ locals {
   cluster_log_retention_days = 30
 
   ############################################################################
+  # Aurora MySQL 설정
+  ############################################################################
+
+  aurora = {
+    # 클러스터 기본 설정
+    cluster_identifier = "${local.project}-aurora-mysql"
+    engine_version     = "8.0.mysql_aurora.3.05.2"
+    database_name      = "petclinic"
+    master_username    = "admin"
+
+    # 인스턴스 설정 - 최소 사양 (db.t3.medium이 Aurora 최소)
+    instance_class = "db.t3.medium"
+
+    # Writer 1개 + Reader 1개 구성
+    instances = {
+      writer = {
+        promotion_tier = 0
+      }
+      reader = {
+        promotion_tier = 1
+      }
+    }
+
+    # 백업 설정
+    backup_retention_period      = 7
+    preferred_backup_window      = "03:00-04:00"
+    preferred_maintenance_window = "sun:04:00-sun:05:00"
+
+    # 테스트 환경 설정 (프로덕션에서는 false로 변경)
+    skip_final_snapshot = true
+    deletion_protection = false
+    apply_immediately   = true
+
+    # 모니터링 설정
+    monitoring_interval                   = 60
+    performance_insights_enabled          = true
+    performance_insights_retention_period = 7
+
+    # CloudWatch 로그
+    enabled_cloudwatch_logs_exports = ["audit", "error", "slowquery"]
+  }
+
+  ############################################################################
   # 태그
   ############################################################################
 
