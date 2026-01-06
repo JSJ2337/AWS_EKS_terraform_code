@@ -13,7 +13,7 @@ resource "random_password" "master" {
 resource "aws_secretsmanager_secret" "aurora" {
   name                    = "${var.cluster_identifier}-credentials"
   description             = "Aurora MySQL credentials for ${var.cluster_identifier}"
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0  # 즉시 삭제 (테스트 환경용, 프로덕션은 7~30 권장)
   tags                    = var.tags
 }
 
