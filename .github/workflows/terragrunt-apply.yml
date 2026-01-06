@@ -1,12 +1,7 @@
 name: Terragrunt Apply
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'environments/**'
-      - 'modules/**'
+  # 수동 실행만 허용 (자동 apply 방지)
   workflow_dispatch:
     inputs:
       layer:
