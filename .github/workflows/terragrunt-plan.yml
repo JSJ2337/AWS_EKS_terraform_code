@@ -67,6 +67,10 @@ jobs:
           sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
           terragrunt --version
 
+      - name: Clean Terragrunt Cache
+        run: |
+          find environments/${{ inputs.environment }} -type d -name ".terragrunt-cache" -exec rm -rf {} + 2>/dev/null || true
+
       - name: Plan 00-foundation
         working-directory: environments/${{ inputs.environment }}/00-foundation
         run: |
@@ -165,6 +169,10 @@ jobs:
           chmod +x terragrunt_linux_amd64
           sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
           terragrunt --version
+
+      - name: Clean Terragrunt Cache
+        run: |
+          find environments/${{ inputs.environment }} -type d -name ".terragrunt-cache" -exec rm -rf {} + 2>/dev/null || true
 
       - name: Terragrunt Init
         working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
