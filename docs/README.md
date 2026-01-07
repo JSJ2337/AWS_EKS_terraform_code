@@ -13,7 +13,7 @@ AWS EKS 인프라를 Terraform/Terragrunt로 관리하는 프로젝트입니다.
 | VPC | jsj-eks-vpc (10.0.0.0/16) | Active |
 | Subnets | 8개 (public/private/database/pod) | Active |
 | EKS Cluster | jsj-eks-cluster (v1.31) | Active |
-| Node Groups | system (t3.small), app (t3.small) | Active |
+| Fargate Profiles | system, application, monitoring | Active |
 | Aurora MySQL | jsj-eks-aurora-mysql (Writer + Reader) | Available |
 | S3 State | jsj-eks-terraform-state | Active |
 | DynamoDB Lock | jsj-eks-terraform-lock | Active |
@@ -36,14 +36,15 @@ AWS_EKS_terraform_code/
 │
 ├── modules/                      # Terraform 모듈
 │   ├── networking/              # VPC, 서브넷, NAT, IGW
-│   ├── security/                # Security Groups
-│   ├── iam/                     # IAM Roles (EKS, VPC Flow Logs, RDS)
-│   ├── cloudwatch/              # CloudWatch Log Groups (EKS, ECS, EC2, Lambda, VPC)
+│   ├── security/                # Security Groups (Fargate용)
+│   ├── iam/                     # IAM Roles (EKS, Fargate, VPC Flow Logs, RDS)
+│   ├── cloudwatch/              # CloudWatch Log Groups
 │   ├── eks-cluster/             # EKS 컨트롤 플레인
-│   ├── eks-nodegroup/           # 워커 노드 그룹
+│   ├── fargate/                 # Fargate Profiles
 │   ├── addons/                  # EKS 애드온 (vpc-cni, coredns, IRSA)
 │   ├── argocd/                  # ArgoCD (Helm Provider)
 │   ├── aurora-mysql/            # Aurora MySQL 클러스터
+│   ├── ecr/                     # ECR 리포지토리
 │   └── foundation/              # KMS
 │
 ├── environments/                 # 환경별 구성
@@ -54,7 +55,7 @@ AWS_EKS_terraform_code/
 │       ├── 10-networking/       # VPC, 서브넷
 │       ├── 20-security/         # Security Groups
 │       ├── 30-eks-cluster/      # EKS 클러스터
-│       ├── 40-nodegroups/       # 워커 노드
+│       ├── 40-fargate/          # Fargate Profiles
 │       ├── 50-addons/           # EKS 애드온, IRSA
 │       ├── 55-argocd/           # ArgoCD (GitOps)
 │       ├── 60-database/         # Aurora MySQL
@@ -143,7 +144,7 @@ kubectl describe node <node-name>
 
 - 레이어 선택: all (역순 삭제), 60-database ~ 00-foundation
 - 삭제 확인: `delete` 입력 필수
-- 삭제 순서: 60-database → 55-argocd → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation
+- 삭제 순서: 60-database → 55-argocd → 50-addons → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation
 
 ## 환경 변수
 

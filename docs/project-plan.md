@@ -125,7 +125,7 @@ bootstrap/
 | ---- | ---- | ---- |
 | eks_admin_role | EKS 관리자 접근 (MFA 필수) | 완료 |
 | eks_cluster_role | EKS 컨트롤 플레인 | 완료 |
-| eks_nodes_role | EKS 워커 노드 (SSM 포함) | 완료 |
+| fargate_pod_execution_role | Fargate Pod 실행 | 완료 |
 | flow_logs_role | VPC Flow Logs | 완료 |
 | rds_monitoring_role | RDS Enhanced Monitoring | 완료 |
 
@@ -133,14 +133,12 @@ bootstrap/
 
 | 역할 | 용도 |
 | ---- | ---- |
-| ebs_csi_role | EBS CSI Driver |
 | aws_lb_controller_role | AWS Load Balancer Controller |
-| cluster_autoscaler_role | Cluster Autoscaler |
 
 **작업 항목:**
 
 - [x] 04-iam 레이어 생성
-- [x] EKS Cluster/Node IAM Role
+- [x] EKS Cluster/Fargate IAM Role
 - [x] VPC Flow Logs IAM Role
 - [x] RDS Enhanced Monitoring Role
 - [x] EKS Admin Role (MFA 필수)
@@ -159,8 +157,8 @@ bootstrap/
 | VPC | 10.0.0.0/16 | 프로덕션 VPC |
 | Public Subnet A | 10.0.0.0/24 | NAT GW, ALB, Bastion |
 | Public Subnet C | 10.0.1.0/24 | NAT GW, ALB (HA) |
-| Private Subnet A | 10.0.10.0/24 | EKS 워커 노드 |
-| Private Subnet C | 10.0.11.0/24 | EKS 워커 노드 (HA) |
+| Private Subnet A | 10.0.10.0/24 | EKS Fargate Pods |
+| Private Subnet C | 10.0.11.0/24 | EKS Fargate Pods (HA) |
 | Database Subnet A | 10.0.20.0/24 | RDS, ElastiCache |
 | Database Subnet C | 10.0.21.0/24 | RDS, ElastiCache (HA) |
 | Pod Subnet A | 10.0.100.0/22 | EKS Pod (CNI Custom) |
@@ -195,7 +193,7 @@ environments/LIVE/eks-prod/
 **작업 항목:**
 
 - [ ] EKS 클러스터 Security Group
-- [ ] 워커 노드 Security Group
+- [ ] Fargate Pods Security Group
 - [ ] ALB Security Group
 - [ ] RDS Security Group
 - [ ] ElastiCache Security Group
@@ -235,33 +233,28 @@ environments/LIVE/eks-prod/
 │   └── terragrunt.hcl
 ```
 
-### 3.2 노드 그룹 구성
+### 3.2 Fargate Profile 구성
 
-**노드 그룹 설계:**
+**Fargate Profile 설계:**
 
-| 노드 그룹 | 인스턴스 타입 | Min/Max | 용도 |
-| --------- | ------------- | ------- | ---- |
-| system | m6i.large | 2/4 | 시스템 워크로드 |
-| application | m6i.xlarge | 2/10 | 애플리케이션 |
-| spot | m6i.xlarge | 0/20 | 비용 최적화 (Spot) |
+| Profile | Namespace | 용도 |
+| ------- | --------- | ---- |
+| system | kube-system, argocd | 시스템 워크로드 |
+| application | default, app, staging | 애플리케이션 |
+| monitoring | prometheus, grafana, loki | 모니터링 (선택적) |
 
 **작업 항목:**
 
-- [ ] Node Group IAM Role 생성
-- [ ] Launch Template 구성
-- [ ] Managed Node Group 생성
-- [ ] Cluster Autoscaler 설정
+- [x] Fargate Pod Execution IAM Role 생성
+- [x] Fargate Profile 생성 (system, application)
+- [ ] Fargate Profile 생성 (monitoring)
 
 **디렉토리:**
 
 ```text
-environments/LIVE/eks-prod/
-├── 40-nodegroups/
-│   ├── node-group-system.tf
-│   ├── node-group-application.tf
-│   ├── node-group-spot.tf
-│   ├── launch-template.tf
-│   ├── iam.tf
+environments/prod/
+├── 40-fargate/
+│   ├── main.tf
 │   ├── variables.tf
 │   ├── outputs.tf
 │   └── terragrunt.hcl
@@ -284,17 +277,15 @@ environments/LIVE/eks-prod/
 | 컴포넌트 | 용도 |
 | -------- | ---- |
 | AWS Load Balancer Controller | ALB/NLB Ingress |
-| Cluster Autoscaler | 노드 오토스케일링 |
 | Metrics Server | 리소스 메트릭 |
 | External DNS | Route53 연동 |
 | Cert Manager | 인증서 관리 |
 
 **작업 항목:**
 
-- [ ] EKS 관리형 애드온 설치
-- [ ] IRSA 설정 (각 컴포넌트별)
-- [ ] AWS Load Balancer Controller 설치
-- [ ] Cluster Autoscaler 설치
+- [x] EKS 관리형 애드온 설치
+- [x] IRSA 설정 (AWS LB Controller)
+- [x] AWS Load Balancer Controller 설치
 - [ ] Metrics Server 설치
 
 **디렉토리:**
@@ -424,14 +415,15 @@ AWS_EKS_terraform_code/
 │
 ├── modules/
 │   ├── networking/           # VPC, 서브넷, NAT, IGW
-│   ├── security/             # Security Groups
+│   ├── security/             # Security Groups (Fargate용)
 │   ├── iam/                  # IAM Roles (중앙 관리)
 │   ├── cloudwatch/           # CloudWatch Log Groups
 │   ├── eks-cluster/          # EKS 컨트롤 플레인
-│   ├── eks-nodegroup/        # 워커 노드 그룹
+│   ├── fargate/              # Fargate Profiles
 │   ├── addons/               # EKS 애드온, IRSA
 │   ├── argocd/               # ArgoCD (Helm)
 │   ├── aurora-mysql/         # Aurora MySQL
+│   ├── ecr/                  # ECR 리포지토리
 │   └── foundation/           # KMS
 │
 ├── environments/
@@ -442,7 +434,7 @@ AWS_EKS_terraform_code/
 │       ├── 10-networking/        # VPC, 서브넷
 │       ├── 20-security/          # Security Groups
 │       ├── 30-eks-cluster/       # EKS 클러스터
-│       ├── 40-nodegroups/        # 워커 노드
+│       ├── 40-fargate/           # Fargate Profiles
 │       ├── 50-addons/            # EKS 애드온, IRSA
 │       ├── 55-argocd/            # ArgoCD (GitOps)
 │       ├── 60-database/          # Aurora MySQL
@@ -481,7 +473,7 @@ AWS_EKS_terraform_code/
 | 10-networking | VPC, 서브넷, NAT | 완료 |
 | 20-security | Security Groups | 완료 |
 | 30-eks-cluster | EKS 컨트롤 플레인, OIDC | 완료 |
-| 40-nodegroups | 워커 노드 (system, app) | 완료 |
+| 40-fargate | Fargate Profiles | 완료 |
 | 50-addons | EKS 애드온, IRSA | 완료 |
 | 55-argocd | ArgoCD (Helm) | 대기 |
 | 60-database | Aurora MySQL | 완료 |
@@ -492,13 +484,13 @@ AWS_EKS_terraform_code/
 ### 배포 순서
 
 ```text
-00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database
+00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 50-addons → 55-argocd → 60-database
 ```
 
 ### 삭제 순서
 
 ```text
-60-database → 55-argocd → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation
+60-database → 55-argocd → 50-addons → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation
 ```
 
 ---
@@ -509,7 +501,7 @@ AWS_EKS_terraform_code/
 
 - [ ] IAM 최소 권한 원칙 적용
 - [ ] 모든 데이터 암호화 (저장 시, 전송 중)
-- [ ] Private 서브넷에 워커 노드 배치
+- [ ] Private 서브넷에 Fargate Pods 배치
 - [ ] Security Group 인바운드 최소화
 - [ ] VPC Endpoints로 AWS 서비스 접근
 - [ ] Secrets Manager로 시크릿 관리
@@ -518,7 +510,7 @@ AWS_EKS_terraform_code/
 
 - [ ] Multi-AZ 배포 (최소 2개 AZ)
 - [ ] NAT Gateway AZ별 배치
-- [ ] EKS 노드 그룹 다중 AZ
+- [ ] Fargate 다중 AZ 자동 분산
 - [ ] RDS Multi-AZ 활성화
 - [ ] ElastiCache 클러스터 모드
 

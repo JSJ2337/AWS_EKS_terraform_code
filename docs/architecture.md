@@ -17,10 +17,10 @@ flowchart TB
             end
 
             subgraph PrivateSubnets["Private Subnets"]
-                subgraph EKS["EKS Cluster"]
+                subgraph EKS["EKS Cluster (Fargate)"]
                     direction LR
-                    NG_A[Node Group<br/>AZ-a]
-                    NG_C[Node Group<br/>AZ-c]
+                    FG_A[Fargate Pods<br/>AZ-a]
+                    FG_C[Fargate Pods<br/>AZ-c]
                 end
             end
 
@@ -121,8 +121,8 @@ flowchart TD
     CW --> N[10-networking]
     N --> S[20-security]
     S --> EKS[30-eks-cluster]
-    EKS --> NG[40-nodegroups]
-    NG --> AD[50-addons]
+    EKS --> FG[40-fargate]
+    FG --> AD[50-addons]
 
     AD --> ARGO[55-argocd]
     AD --> DB[60-database]
@@ -148,12 +148,12 @@ flowchart TD
 | 레이어 | 목적 | 주요 리소스 |
 | ------ | ---- | ----------- |
 | 00-foundation | AWS 기본 설정 | KMS, S3 State Bucket |
-| 04-iam | IAM 역할 중앙 관리 | EKS Cluster/Node Role, Flow Logs Role, RDS Monitoring Role |
+| 04-iam | IAM 역할 중앙 관리 | EKS Cluster Role, Fargate Pod Execution Role, Flow Logs Role, RDS Monitoring Role |
 | 05-cloudwatch | CloudWatch 로그 그룹 | EKS, ECS, EC2, Lambda, VPC Log Groups |
 | 10-networking | 네트워크 인프라 | VPC, Subnet, NAT GW, Route Table |
 | 20-security | 보안 설정 | Security Group |
 | 30-eks-cluster | EKS 컨트롤 플레인 | EKS Cluster, OIDC Provider |
-| 40-nodegroups | 워커 노드 | Node Group, Launch Template |
+| 40-fargate | Fargate Profiles | System, Application, Monitoring Profiles |
 | 50-addons | EKS 애드온 | VPC CNI, CoreDNS, kube-proxy, IRSA |
 | 55-argocd | GitOps CD | ArgoCD (Helm), App of Apps |
 | 60-database | 데이터베이스 | RDS, Parameter Group |
@@ -198,7 +198,7 @@ flowchart TB
 | 서브넷 유형 | CIDR | 용도 |
 | ----------- | ---- | ---- |
 | Public | 10.0.0.0/24, 10.0.1.0/24 | NAT GW, ALB, Bastion |
-| Private | 10.0.10.0/24, 10.0.11.0/24 | EKS 워커 노드 |
+| Private | 10.0.10.0/24, 10.0.11.0/24 | EKS Fargate Pods |
 | Database | 10.0.20.0/24, 10.0.21.0/24 | RDS, ElastiCache |
 | Pod | 10.0.100.0/22, 10.0.104.0/22 | EKS Pod (CNI Custom) |
 
@@ -214,7 +214,7 @@ flowchart TB
 "kubernetes.io/cluster/${cluster_name}" = "shared"
 ```
 
-## EKS 클러스터 구성
+## EKS 클러스터 구성 (Fargate 전용)
 
 ```mermaid
 flowchart TB
@@ -226,45 +226,48 @@ flowchart TB
             SCH[Scheduler]
         end
 
-        subgraph DataPlane["Data Plane"]
-            subgraph SystemNG["System Node Group"]
-                SYS1[t3.small<br/>min:1 max:2]
+        subgraph DataPlane["Data Plane (Fargate)"]
+            subgraph SystemFG["System Profile"]
+                SYS1[kube-system<br/>argocd]
             end
 
-            subgraph AppNG["Application Node Group"]
-                APP1[t3.small<br/>min:1 max:3]
+            subgraph AppFG["Application Profile"]
+                APP1[default<br/>app, staging]
+            end
+
+            subgraph MonFG["Monitoring Profile"]
+                MON1[prometheus<br/>grafana, loki]
             end
         end
     end
 
     subgraph Addons["EKS Add-ons"]
-        CNI[VPC CNI v1.19.2]
-        DNS[CoreDNS v1.11.4]
-        PROXY[kube-proxy v1.31.3]
-        EBS[EBS CSI v1.38.1]
-        POD_ID[Pod Identity v1.3.5]
+        CNI[VPC CNI]
+        DNS[CoreDNS]
+        PROXY[kube-proxy]
+        POD_ID[Pod Identity]
     end
 
     ControlPlane --> DataPlane
     DataPlane --> Addons
 ```
 
-### 현재 노드 그룹 설정
+### Fargate Profile 설정
 
-| 노드 그룹 | 인스턴스 타입 | Min | Max | 용도 |
-| --------- | ------------- | --- | --- | ---- |
-| system | t3.small | 1 | 2 | 시스템 컴포넌트 |
-| app | t3.small | 1 | 3 | 애플리케이션 워크로드 |
+| Profile | Namespace | 용도 |
+| ------- | --------- | ---- |
+| system | kube-system, argocd | 시스템 컴포넌트 |
+| application | default, app, staging | 애플리케이션 워크로드 |
+| monitoring | prometheus, grafana, loki | 모니터링 (선택적) |
 
 ### 현재 EKS 애드온
 
-| 애드온 | 버전 | 상태 |
+| 애드온 | 상태 | 비고 |
 | ------ | ---- | ---- |
-| vpc-cni | v1.19.2 | Active |
-| coredns | v1.11.4 | Active |
-| kube-proxy | v1.31.3 | Active |
-| aws-ebs-csi-driver | v1.38.1 | Active |
-| eks-pod-identity-agent | v1.3.5 | Active |
+| vpc-cni | Active | Fargate 네트워킹 |
+| coredns | Active | Fargate에서 실행 |
+| kube-proxy | Active | DaemonSet |
+| eks-pod-identity-agent | Active | IRSA 대체 |
 
 ## State 관리
 
@@ -291,9 +294,9 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph IAM_Layer["04-iam Layer"]
-        subgraph ClusterRoles["EKS Cluster Roles"]
+        subgraph ClusterRoles["EKS Roles"]
             CR[EKS Cluster Role]
-            NR[Node Group Role]
+            FG[Fargate Pod Execution Role]
         end
 
         subgraph ServiceRoles["Service Roles"]
@@ -309,14 +312,12 @@ flowchart TB
     subgraph Addons_Layer["50-addons Layer (IRSA)"]
         subgraph IRSA["IRSA (Pod IAM)"]
             LBC_SA[LB Controller SA]
-            CA_SA[Cluster Autoscaler SA]
-            EBS_SA[EBS CSI SA]
         end
     end
 
     OIDC[OIDC Provider] --> IRSA
     CR --> EKS[EKS Cluster]
-    NR --> NG[Node Groups]
+    FG --> Fargate[Fargate Pods]
     FL --> VPC[VPC Flow Logs]
     RDS_MON --> RDS[RDS Enhanced Monitoring]
 ```
@@ -329,14 +330,14 @@ flowchart LR
 
     subgraph SecurityGroups["Security Groups"]
         ALB_SG[ALB SG<br/>443, 80]
-        Node_SG[Node SG<br/>All from ALB]
-        RDS_SG[RDS SG<br/>3306 from Node]
-        Redis_SG[Redis SG<br/>6379 from Node]
+        Pod_SG[Pods SG<br/>All from ALB]
+        RDS_SG[RDS SG<br/>3306 from Pods]
+        Redis_SG[Redis SG<br/>6379 from Pods]
     end
 
-    ALB_SG --> Node_SG
-    Node_SG --> RDS_SG
-    Node_SG --> Redis_SG
+    ALB_SG --> Pod_SG
+    Pod_SG --> RDS_SG
+    Pod_SG --> Redis_SG
 ```
 
 ## 고가용성
@@ -346,21 +347,21 @@ flowchart TB
     subgraph HA["High Availability Design"]
         subgraph AZa["AZ-a"]
             NAT1[NAT GW]
-            Node1[EKS Nodes]
+            Pod1[Fargate Pods]
             RDS1[(RDS Primary)]
             Redis1[(Redis Node)]
         end
 
         subgraph AZc["AZ-c"]
             NAT2[NAT GW]
-            Node2[EKS Nodes]
+            Pod2[Fargate Pods]
             RDS2[(RDS Standby)]
             Redis2[(Redis Node)]
         end
     end
 
-    ALB[ALB] --> Node1
-    ALB --> Node2
+    ALB[ALB] --> Pod1
+    ALB --> Pod2
     RDS1 <-->|Sync| RDS2
     Redis1 <-->|Cluster| Redis2
 ```
@@ -369,7 +370,7 @@ flowchart TB
 
 - Multi-AZ 배포 (최소 2개 AZ)
 - EKS 컨트롤 플레인: AWS 관리형 HA
-- 워커 노드: 다중 AZ Node Group
+- Fargate: 다중 AZ 자동 분산
 - RDS: Multi-AZ 옵션
 - ElastiCache: Cluster Mode 활성화
 - NAT Gateway: AZ별 배치
