@@ -91,9 +91,11 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  host                   = "${dependency.eks_cluster.outputs.cluster_endpoint}"
-  cluster_ca_certificate = base64decode("${dependency.eks_cluster.outputs.cluster_certificate_authority_data}")
-  token                  = data.aws_eks_cluster_auth.cluster.token
+  kubernetes = {
+    host                   = "${dependency.eks_cluster.outputs.cluster_endpoint}"
+    cluster_ca_certificate = base64decode("${dependency.eks_cluster.outputs.cluster_certificate_authority_data}")
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
 }
 EOF
 }
