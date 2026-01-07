@@ -123,9 +123,13 @@ flowchart TD
     EKS --> NG[40-nodegroups]
     NG --> AD[50-addons]
 
+    AD --> ARGO[55-argocd]
     AD --> DB[60-database]
     AD --> CA[70-cache]
     AD --> ST[80-storage]
+
+    ARGO --> ISTIO[Istio via ArgoCD]
+    ARGO --> APPS[Applications via ArgoCD]
 
     DB --> MO[90-monitoring]
     CA --> MO
@@ -147,6 +151,7 @@ flowchart TD
 | 30-eks-cluster | EKS 컨트롤 플레인 | EKS Cluster, OIDC Provider |
 | 40-nodegroups | 워커 노드 | Node Group, Launch Template |
 | 50-addons | EKS 애드온 | VPC CNI, CoreDNS, kube-proxy |
+| 55-argocd | GitOps CD | ArgoCD (Helm), App of Apps |
 | 60-database | 데이터베이스 | RDS, Parameter Group |
 | 70-cache | 캐시 | ElastiCache Redis |
 | 80-storage | 스토리지 | EBS CSI, EFS, S3 |

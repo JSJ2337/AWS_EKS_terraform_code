@@ -18,6 +18,7 @@ on:
           - 30-eks-cluster
           - 40-nodegroups
           - 50-addons
+          - 55-argocd
           - 60-database
       environment:
         description: '환경'

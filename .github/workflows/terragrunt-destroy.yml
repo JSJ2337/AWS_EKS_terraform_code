@@ -10,6 +10,7 @@ on:
         options:
           - all
           - 60-database
+          - 55-argocd
           - 50-addons
           - 40-nodegroups
           - 30-eks-cluster
@@ -76,6 +77,13 @@ jobs:
           terragrunt run init || true
           terragrunt run -- destroy -auto-approve || echo "60-database not found or already destroyed"
 
+      - name: Destroy 55-argocd
+        working-directory: environments/${{ inputs.environment }}/55-argocd
+        run: |
+          echo ">>> Destroying 55-argocd..."
+          terragrunt run init || true
+          terragrunt run -- destroy -auto-approve || echo "55-argocd not found or already destroyed"
+
       - name: Destroy 50-addons
         working-directory: environments/${{ inputs.environment }}/50-addons
         run: |
@@ -129,7 +137,7 @@ jobs:
         run: |
           echo "## Terragrunt Destroy All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers destroyed:** 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers destroyed:** 60-database → 55-argocd → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   destroy-single:

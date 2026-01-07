@@ -41,6 +41,7 @@ AWS_EKS_terraform_code/
 │   ├── eks-cluster/             # EKS 컨트롤 플레인
 │   ├── eks-nodegroup/           # 워커 노드 그룹
 │   ├── eks-addons/              # EKS 애드온 (vpc-cni, coredns 등)
+│   ├── argocd/                  # ArgoCD (Helm Provider)
 │   ├── aurora-mysql/            # Aurora MySQL 클러스터
 │   └── foundation/              # KMS
 │
@@ -53,6 +54,7 @@ AWS_EKS_terraform_code/
 │       ├── 30-eks-cluster/      # EKS 클러스터
 │       ├── 40-nodegroups/       # 워커 노드
 │       ├── 50-addons/           # EKS 애드온
+│       ├── 55-argocd/           # ArgoCD (GitOps)
 │       ├── 60-database/         # Aurora MySQL
 │       ├── root.hcl             # Terragrunt 루트 설정
 │       └── common.hcl           # 공통 변수
@@ -139,7 +141,7 @@ kubectl describe node <node-name>
 
 - 레이어 선택: all (역순 삭제), 60-database ~ 00-foundation
 - 삭제 확인: `delete` 입력 필수
-- 삭제 순서: 60-database → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation
+- 삭제 순서: 60-database → 55-argocd → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 00-foundation
 
 ## 환경 변수
 

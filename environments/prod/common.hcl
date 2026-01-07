@@ -146,6 +146,34 @@ locals {
   }
 
   ############################################################################
+  # ArgoCD 설정
+  ############################################################################
+
+  argocd = {
+    # 기본 설정
+    release_name  = "argocd"
+    namespace     = "argocd"
+    chart_version = "7.7.10"  # 2024년 12월 기준 최신
+
+    # 컴포넌트 Replicas (테스트 환경: 1, 프로덕션: 2+)
+    server_replicas      = 1
+    controller_replicas  = 1
+    repo_server_replicas = 1
+
+    # 기능 활성화
+    applicationset_enabled = true   # App of Apps 패턴 사용
+    notifications_enabled  = false  # 알림 (Slack 등)
+    dex_enabled            = false  # SSO
+
+    # Server 설정
+    server_service_type = "LoadBalancer"  # ClusterIP, LoadBalancer, NodePort
+    server_insecure     = true            # TLS termination at LB
+
+    # Ingress (ALB 사용 시)
+    ingress_enabled = false
+  }
+
+  ############################################################################
   # 태그
   ############################################################################
 
