@@ -53,20 +53,20 @@ locals {
   # EKS 노드 그룹 설정
   ############################################################################
 
-  # System Node Group (CoreDNS, kube-proxy 등) - 테스트용 최소 사양
+  # System Node Group (CoreDNS, kube-proxy, ArgoCD 등)
   system_node_group = {
-    instance_types = ["t3.small"]
+    instance_types = ["t3.medium"]
     desired_size   = 1
     min_size       = 1
     max_size       = 2
   }
 
-  # Application Node Group - 테스트용 최소 사양
+  # Application Node Group (Istio, 애플리케이션)
   application_node_group = {
-    instance_types = ["t3.small"]
-    desired_size   = 1
+    instance_types = ["t3.medium"]
+    desired_size   = 2
     min_size       = 1
-    max_size       = 2
+    max_size       = 3
   }
 
   # Spot Node Group (비용 최적화, 선택적)
