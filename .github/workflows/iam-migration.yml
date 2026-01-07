@@ -1,0 +1,201 @@
+name: IAM State Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '실행할 작업'
+        required: true
+        type: choice
+        options:
+          - step1-remove-from-old-state
+          - step2-import-to-iam
+          - step3-verify
+      environment:
+        description: '환경'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+
+env:
+  AWS_REGION: ap-northeast-2
+  TF_VERSION: '1.14.0'
+  TG_VERSION: '0.96.0'
+  TG_NON_INTERACTIVE: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  remove-from-old-state:
+    name: Step 1 - Remove from Old State
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.action == 'step1-remove-from-old-state' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Remove eks_admin from foundation state
+        working-directory: environments/${{ inputs.environment }}/00-foundation
+        run: |
+          echo ">>> Removing eks_admin role from foundation state..."
+          terragrunt run init
+          terragrunt run -- state rm 'aws_iam_role.eks_admin[0]' || echo "Resource not found in state"
+          terragrunt run -- state rm 'aws_iam_role_policy_attachment.eks_admin[0]' || echo "Resource not found in state"
+
+      - name: Remove flow_logs from networking state
+        working-directory: environments/${{ inputs.environment }}/10-networking
+        run: |
+          echo ">>> Removing flow_logs role from networking state..."
+          terragrunt run init
+          terragrunt run -- state rm 'aws_iam_role.flow_logs[0]' || echo "Resource not found in state"
+          terragrunt run -- state rm 'aws_iam_role_policy.flow_logs[0]' || echo "Resource not found in state"
+
+      - name: Summary
+        run: |
+          echo "## Step 1 Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Removed eks_admin from foundation state" >> $GITHUB_STEP_SUMMARY
+          echo "- Removed flow_logs from networking state" >> $GITHUB_STEP_SUMMARY
+          echo "- **Next:** Run step2-import-to-iam" >> $GITHUB_STEP_SUMMARY
+
+  import-to-iam:
+    name: Step 2 - Import to 04-iam
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.action == 'step2-import-to-iam' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Import eks_admin to 04-iam
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> Importing eks_admin role to 04-iam..."
+          terragrunt run init
+          terragrunt run -- import 'aws_iam_role.eks_admin[0]' jsj-eks-eks-admin-prod || echo "Import failed or already exists"
+          terragrunt run -- import 'aws_iam_role_policy_attachment.eks_admin[0]' jsj-eks-eks-admin-prod/arn:aws:iam::aws:policy/AdministratorAccess || echo "Import failed or already exists"
+
+      - name: Import flow_logs to 04-iam
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> Importing flow_logs role to 04-iam..."
+          terragrunt run -- import 'aws_iam_role.flow_logs[0]' jsj-eks-vpc-flow-logs-prod || echo "Import failed or already exists"
+
+      - name: Apply 04-iam to sync state
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> Applying 04-iam to create remaining resources..."
+          terragrunt run -- apply -auto-approve
+
+      - name: Summary
+        run: |
+          echo "## Step 2 Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Imported eks_admin to 04-iam" >> $GITHUB_STEP_SUMMARY
+          echo "- Imported flow_logs to 04-iam" >> $GITHUB_STEP_SUMMARY
+          echo "- Applied 04-iam layer" >> $GITHUB_STEP_SUMMARY
+          echo "- **Next:** Run step3-verify" >> $GITHUB_STEP_SUMMARY
+
+  verify:
+    name: Step 3 - Verify Migration
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.action == 'step3-verify' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Verify 04-iam state
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> 04-iam state list..."
+          terragrunt run init
+          terragrunt run -- state list
+
+      - name: Plan 04-iam (should show no changes)
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> Planning 04-iam..."
+          terragrunt run -- plan
+
+      - name: Plan foundation (should show no changes)
+        working-directory: environments/${{ inputs.environment }}/00-foundation
+        run: |
+          echo ">>> Planning foundation..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan networking (should show no changes)
+        working-directory: environments/${{ inputs.environment }}/10-networking
+        run: |
+          echo ">>> Planning networking..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Summary
+        run: |
+          echo "## Step 3 - Verification Complete" >> $GITHUB_STEP_SUMMARY
+          echo "Check the plan outputs above to ensure no unexpected changes." >> $GITHUB_STEP_SUMMARY

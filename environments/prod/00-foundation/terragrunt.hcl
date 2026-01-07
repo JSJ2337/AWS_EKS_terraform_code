@@ -19,8 +19,8 @@ inputs = {
   # KMS key for encryption
   enable_kms = true
 
-  # IAM baseline roles
-  create_eks_admin_role = true
+  # IAM baseline roles (moved to 04-iam layer)
+  create_eks_admin_role = false
 
   # Common tags
   tags = local.common.locals.common_tags
