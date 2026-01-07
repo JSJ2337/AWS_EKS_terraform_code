@@ -4,7 +4,9 @@
 ################################################################################
 
 include "root" {
-  path = find_in_parent_folders("root.hcl")
+  path           = find_in_parent_folders("root.hcl")
+  merge_strategy = "deep"
+  expose         = true
 }
 
 locals {
@@ -42,19 +44,13 @@ dependency "nodegroups" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-# root.hcl의 provider.tf 생성을 덮어쓰기 (helm, kubernetes 추가)
-generate "provider" {
-  path      = "provider.tf"
+# Helm/Kubernetes Provider 추가 (root.hcl의 provider.tf와 별도 파일)
+generate "k8s_helm_provider" {
+  path      = "k8s_helm_provider.tf"
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
 terraform {
-  required_version = ">= 1.14"
-
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 5.82"
-    }
     helm = {
       source  = "hashicorp/helm"
       version = ">= 2.0"
@@ -62,18 +58,6 @@ terraform {
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = ">= 2.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = "ap-northeast-2"
-
-  default_tags {
-    tags = {
-      Project     = "jsj-eks"
-      Environment = "prod"
-      ManagedBy   = "terragrunt"
     }
   }
 }
