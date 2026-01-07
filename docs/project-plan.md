@@ -117,13 +117,34 @@ bootstrap/
 │   └── terragrunt.hcl
 ```
 
-### 1.3 IAM 기반 구성
+### 1.3 IAM 기반 구성 (04-iam 레이어)
+
+**IAM 역할 중앙 관리:**
+
+| 역할 | 용도 | 상태 |
+| ---- | ---- | ---- |
+| eks_admin_role | EKS 관리자 접근 (MFA 필수) | 완료 |
+| eks_cluster_role | EKS 컨트롤 플레인 | 완료 |
+| eks_nodes_role | EKS 워커 노드 (SSM 포함) | 완료 |
+| flow_logs_role | VPC Flow Logs | 완료 |
+| rds_monitoring_role | RDS Enhanced Monitoring | 완료 |
+
+**IRSA (50-addons 레이어에서 관리):**
+
+| 역할 | 용도 |
+| ---- | ---- |
+| ebs_csi_role | EBS CSI Driver |
+| aws_lb_controller_role | AWS Load Balancer Controller |
+| cluster_autoscaler_role | Cluster Autoscaler |
 
 **작업 항목:**
 
-- [ ] Terraform 실행용 IAM Role 생성
-- [ ] Cross-Account Assume Role 정책
-- [ ] EKS 관리자 IAM Role/Group
+- [x] 04-iam 레이어 생성
+- [x] EKS Cluster/Node IAM Role
+- [x] VPC Flow Logs IAM Role
+- [x] RDS Enhanced Monitoring Role
+- [x] EKS Admin Role (MFA 필수)
+- [ ] CI/CD 파이프라인 IAM Role
 
 ---
 
@@ -402,33 +423,34 @@ AWS_EKS_terraform_code/
 │   └── common.hcl
 │
 ├── modules/
-│   ├── vpc/
-│   ├── security-group/
-│   ├── eks-cluster/
-│   ├── eks-nodegroup/
-│   ├── eks-addons/
-│   ├── rds-aurora/
-│   ├── elasticache-redis/
-│   ├── iam-role/
-│   ├── kms/
-│   └── naming/
+│   ├── networking/           # VPC, 서브넷, NAT, IGW
+│   ├── security/             # Security Groups
+│   ├── iam/                  # IAM Roles (중앙 관리)
+│   ├── cloudwatch/           # CloudWatch Log Groups
+│   ├── eks-cluster/          # EKS 컨트롤 플레인
+│   ├── eks-nodegroup/        # 워커 노드 그룹
+│   ├── addons/               # EKS 애드온, IRSA
+│   ├── argocd/               # ArgoCD (Helm)
+│   ├── aurora-mysql/         # Aurora MySQL
+│   └── foundation/           # KMS
 │
 ├── environments/
-│   └── LIVE/
-│       └── eks-prod/
-│           ├── 00-foundation/
-│           ├── 10-networking/
-│           ├── 20-security/
-│           ├── 30-eks-cluster/
-│           ├── 40-nodegroups/
-│           ├── 50-addons/
-│           ├── 60-database/
-│           ├── 70-cache/
-│           ├── 80-storage/
-│           ├── 90-monitoring/
-│           ├── common.naming.tfvars
-│           ├── root.hcl
-│           └── Jenkinsfile
+│   └── prod/
+│       ├── 00-foundation/        # KMS
+│       ├── 04-iam/               # IAM Roles (중앙 관리)
+│       ├── 05-cloudwatch/        # CloudWatch Log Groups
+│       ├── 10-networking/        # VPC, 서브넷
+│       ├── 20-security/          # Security Groups
+│       ├── 30-eks-cluster/       # EKS 클러스터
+│       ├── 40-nodegroups/        # 워커 노드
+│       ├── 50-addons/            # EKS 애드온, IRSA
+│       ├── 55-argocd/            # ArgoCD (GitOps)
+│       ├── 60-database/          # Aurora MySQL
+│       ├── 70-cache/             # ElastiCache
+│       ├── 80-storage/           # EBS, EFS
+│       ├── 90-monitoring/        # 모니터링
+│       ├── root.hcl
+│       └── common.hcl
 │
 ├── docs/
 │   ├── README.md
@@ -447,31 +469,37 @@ AWS_EKS_terraform_code/
 
 ---
 
-## 작업 우선순위
+## 작업 진행 현황
 
-### 즉시 착수 (Week 1-2)
+### 완료된 레이어
 
-1. State Backend 구축 (bootstrap/00-state-backend)
-2. VPC 네트워크 구축 (10-networking)
-3. 보안 그룹 구성 (20-security)
+| 레이어 | 설명 | 상태 |
+| ------ | ---- | ---- |
+| 00-foundation | KMS 키 | 완료 |
+| 04-iam | IAM Roles 중앙 관리 | 완료 |
+| 05-cloudwatch | CloudWatch Log Groups | 완료 |
+| 10-networking | VPC, 서브넷, NAT | 완료 |
+| 20-security | Security Groups | 완료 |
+| 30-eks-cluster | EKS 컨트롤 플레인, OIDC | 완료 |
+| 40-nodegroups | 워커 노드 (system, app) | 완료 |
+| 50-addons | EKS 애드온, IRSA | 완료 |
+| 55-argocd | ArgoCD (Helm) | 대기 |
+| 60-database | Aurora MySQL | 완료 |
+| 70-cache | ElastiCache Redis | 대기 |
+| 80-storage | EBS, EFS | 대기 |
+| 90-monitoring | 모니터링 | 대기 |
 
-### 단기 (Week 3-4)
+### 배포 순서
 
-1. EKS 클러스터 생성 (30-eks-cluster)
-2. 노드 그룹 구성 (40-nodegroups)
-3. 필수 애드온 설치 (50-addons)
+```text
+00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database
+```
 
-### 중기 (Week 5-6)
+### 삭제 순서
 
-1. 데이터베이스 구축 (60-database)
-2. 캐시 구축 (70-cache)
-3. 모니터링 설정 (90-monitoring)
-
-### 장기
-
-1. CI/CD 파이프라인 완성
-2. 멀티 어카운트 확장 (Organizations)
-3. Staging/Dev 환경 복제
+```text
+60-database → 55-argocd → 50-addons → 40-nodegroups → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation
+```
 
 ---
 

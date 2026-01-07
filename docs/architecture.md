@@ -116,7 +116,8 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-    F[00-foundation] --> CW[05-cloudwatch]
+    F[00-foundation] --> IAM[04-iam]
+    IAM --> CW[05-cloudwatch]
     CW --> N[10-networking]
     N --> S[20-security]
     S --> EKS[30-eks-cluster]
@@ -135,6 +136,8 @@ flowchart TD
     CA --> MO
     ST --> MO
 
+    IAM -.->|IAM Roles| N
+    IAM -.->|IAM Roles| S
     N -.->|VPC Endpoints| MO
     S -.->|Security Groups| MO
     CW -.->|Log Groups| EKS
@@ -144,13 +147,14 @@ flowchart TD
 
 | 레이어 | 목적 | 주요 리소스 |
 | ------ | ---- | ----------- |
-| 00-foundation | AWS 기본 설정 | IAM, KMS, S3 State Bucket |
+| 00-foundation | AWS 기본 설정 | KMS, S3 State Bucket |
+| 04-iam | IAM 역할 중앙 관리 | EKS Cluster/Node Role, Flow Logs Role, RDS Monitoring Role |
 | 05-cloudwatch | CloudWatch 로그 그룹 | EKS, ECS, EC2, Lambda, VPC Log Groups |
 | 10-networking | 네트워크 인프라 | VPC, Subnet, NAT GW, Route Table |
-| 20-security | 보안 설정 | Security Group, IAM Role, IRSA |
+| 20-security | 보안 설정 | Security Group |
 | 30-eks-cluster | EKS 컨트롤 플레인 | EKS Cluster, OIDC Provider |
 | 40-nodegroups | 워커 노드 | Node Group, Launch Template |
-| 50-addons | EKS 애드온 | VPC CNI, CoreDNS, kube-proxy |
+| 50-addons | EKS 애드온 | VPC CNI, CoreDNS, kube-proxy, IRSA |
 | 55-argocd | GitOps CD | ArgoCD (Helm), App of Apps |
 | 60-database | 데이터베이스 | RDS, Parameter Group |
 | 70-cache | 캐시 | ElastiCache Redis |
@@ -286,29 +290,35 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph IAM["IAM Structure"]
+    subgraph IAM_Layer["04-iam Layer"]
         subgraph ClusterRoles["EKS Cluster Roles"]
             CR[EKS Cluster Role]
             NR[Node Group Role]
         end
 
-        subgraph IRSA["IRSA (Pod IAM)"]
-            LBC_SA[LB Controller SA]
-            CA_SA[Cluster Autoscaler SA]
-            EBS_SA[EBS CSI SA]
-            APP_SA[Application SA]
+        subgraph ServiceRoles["Service Roles"]
+            FL[VPC Flow Logs Role]
+            RDS_MON[RDS Monitoring Role]
         end
 
         subgraph UserRoles["User Roles"]
             Admin[EKS Admin Role]
-            Dev[Developer Role]
-            RO[ReadOnly Role]
+        end
+    end
+
+    subgraph Addons_Layer["50-addons Layer (IRSA)"]
+        subgraph IRSA["IRSA (Pod IAM)"]
+            LBC_SA[LB Controller SA]
+            CA_SA[Cluster Autoscaler SA]
+            EBS_SA[EBS CSI SA]
         end
     end
 
     OIDC[OIDC Provider] --> IRSA
     CR --> EKS[EKS Cluster]
     NR --> NG[Node Groups]
+    FL --> VPC[VPC Flow Logs]
+    RDS_MON --> RDS[RDS Enhanced Monitoring]
 ```
 
 ### 네트워크 보안
