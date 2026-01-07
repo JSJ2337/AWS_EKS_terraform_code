@@ -59,7 +59,7 @@ resource "aws_iam_role_policy_attachment" "eks_admin" {
 resource "aws_iam_role" "eks_cluster" {
   count = var.create_eks_cluster_role ? 1 : 0
 
-  name = "${var.project}-eks-cluster-${var.environment}"
+  name = "${var.project}-eks-cluster-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -75,7 +75,7 @@ resource "aws_iam_role" "eks_cluster" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.project}-eks-cluster-${var.environment}"
+    Name = "${var.project}-eks-cluster-role-${var.environment}"
     Role = "eks-cluster"
   })
 }
@@ -102,7 +102,7 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
 resource "aws_iam_role" "eks_nodes" {
   count = var.create_eks_node_role ? 1 : 0
 
-  name = "${var.project}-eks-nodes-${var.environment}"
+  name = "${var.project}-eks-nodes-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -118,7 +118,7 @@ resource "aws_iam_role" "eks_nodes" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.project}-eks-nodes-${var.environment}"
+    Name = "${var.project}-eks-nodes-role-${var.environment}"
     Role = "eks-nodes"
   })
 }
