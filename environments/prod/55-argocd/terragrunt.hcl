@@ -44,13 +44,19 @@ dependency "nodegroups" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-# Helm/Kubernetes Provider 추가 (root.hcl의 provider.tf와 별도 파일)
-generate "k8s_helm_provider" {
-  path      = "k8s_helm_provider.tf"
+# root.hcl의 provider.tf를 오버라이드하여 AWS + Helm + Kubernetes 통합
+generate "provider" {
+  path      = "provider.tf"
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
 terraform {
+  required_version = ">= 1.14"
+
   required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.82"
+    }
     helm = {
       source  = "hashicorp/helm"
       version = ">= 2.0"
@@ -58,6 +64,18 @@ terraform {
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = ">= 2.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "${local.common.locals.region}"
+
+  default_tags {
+    tags = {
+      Project     = "${local.common.locals.project}"
+      Environment = "${local.common.locals.environment}"
+      ManagedBy   = "terragrunt"
     }
   }
 }
