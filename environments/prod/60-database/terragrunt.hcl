@@ -33,9 +33,8 @@ dependency "security" {
 
   mock_outputs = {
     eks_cluster_security_group_id = "sg-mock"
-    eks_cluster_role_arn          = "arn:aws:iam::123456789012:role/mock-role"
-    eks_nodes_role_arn            = "arn:aws:iam::123456789012:role/mock-nodes-role"
-    eks_nodes_security_group_id   = "sg-mock-nodes"
+    eks_pods_security_group_id    = "sg-mock-pods"
+    rds_security_group_id         = "sg-mock-rds"
   }
   mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
@@ -67,8 +66,8 @@ inputs = {
   vpc_id     = dependency.networking.outputs.vpc_id
   subnet_ids = dependency.networking.outputs.database_subnet_ids
 
-  # EKS 노드에서 접근 허용
-  allowed_security_group_ids = [dependency.security.outputs.eks_nodes_security_group_id]
+  # EKS Fargate pods에서 접근 허용
+  allowed_security_group_ids = [dependency.security.outputs.eks_pods_security_group_id]
   allowed_cidr_blocks        = dependency.networking.outputs.private_subnet_cidrs
 
   # Encryption
