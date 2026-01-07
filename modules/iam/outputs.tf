@@ -31,20 +31,6 @@ output "eks_cluster_role_name" {
 }
 
 ################################################################################
-# EKS Node Role
-################################################################################
-
-output "eks_node_role_arn" {
-  description = "ARN of EKS node role"
-  value       = var.create_eks_node_role ? aws_iam_role.eks_nodes[0].arn : null
-}
-
-output "eks_node_role_name" {
-  description = "Name of EKS node role"
-  value       = var.create_eks_node_role ? aws_iam_role.eks_nodes[0].name : null
-}
-
-################################################################################
 # VPC Flow Logs Role
 ################################################################################
 

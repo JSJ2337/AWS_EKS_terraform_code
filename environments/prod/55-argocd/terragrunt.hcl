@@ -32,14 +32,12 @@ dependency "eks_cluster" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-# Node Group 의존성 (노드가 있어야 ArgoCD 배포 가능)
-dependency "nodegroups" {
-  config_path = "../40-nodegroups"
+# Fargate Profile 의존성 (Fargate가 있어야 ArgoCD 배포 가능)
+dependency "fargate" {
+  config_path  = "../40-fargate"
+  skip_outputs = true
 
-  mock_outputs = {
-    system_node_group_name      = "mock-system-ng"
-    application_node_group_name = "mock-app-ng"
-  }
+  mock_outputs = {}
   mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }

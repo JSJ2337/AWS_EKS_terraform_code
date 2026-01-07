@@ -43,8 +43,8 @@ inputs = {
   oidc_provider_arn = dependency.eks_cluster.outputs.oidc_provider_arn
   oidc_provider_id  = dependency.eks_cluster.outputs.oidc_provider_id
 
-  # Fargate 사용 여부 (CoreDNS 설정에 영향)
-  use_fargate = !local.common.locals.use_ec2_nodegroups
+  # Fargate 전용 설정
+  use_fargate = true
 
   # Add-on toggles
   enable_ebs_csi            = local.common.locals.addons.enable_ebs_csi

@@ -75,53 +75,21 @@ locals {
   }
 
   ############################################################################
-  # EKS 노드 그룹 설정 (EC2 - Fargate 사용 시 비활성화)
-  ############################################################################
-
-  # EC2 Node Group 사용 여부 (Fargate 전환 시 false)
-  use_ec2_nodegroups = false
-
-  # System Node Group (CoreDNS, kube-proxy, ArgoCD 등)
-  system_node_group = {
-    instance_types = ["t3.medium"]
-    desired_size   = 1
-    min_size       = 1
-    max_size       = 2
-  }
-
-  # Application Node Group (Istio, 애플리케이션)
-  application_node_group = {
-    instance_types = ["t3.medium"]
-    desired_size   = 2
-    min_size       = 1
-    max_size       = 3
-  }
-
-  # Spot Node Group (비용 최적화, 선택적)
-  spot_node_group = {
-    enabled        = false
-    instance_types = ["t3.small", "t3.micro"]
-    desired_size   = 1
-    min_size       = 0
-    max_size       = 2
-  }
-
-  ############################################################################
   # EKS Add-ons 설정
   ############################################################################
 
   addons = {
     # EBS CSI: Fargate에서는 EBS 미지원 (EFS만 사용 가능)
-    enable_ebs_csi = !local.use_ec2_nodegroups ? false : true
+    enable_ebs_csi = false
 
-    # Pod Identity: Fargate/EC2 모두 지원
+    # Pod Identity: Fargate 지원
     enable_pod_identity = true
 
-    # AWS LB Controller: Fargate/EC2 모두 필요
+    # AWS LB Controller: Fargate 필요
     enable_aws_lb_controller = true
 
     # Cluster Autoscaler: Fargate는 자동 스케일링이므로 불필요
-    enable_cluster_autoscaler = local.use_ec2_nodegroups
+    enable_cluster_autoscaler = false
   }
 
   ############################################################################

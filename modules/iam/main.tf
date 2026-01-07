@@ -95,63 +95,6 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
 }
 
 ################################################################################
-# EKS Node Role
-# For EKS worker nodes
-################################################################################
-
-resource "aws_iam_role" "eks_nodes" {
-  count = var.create_eks_node_role ? 1 : 0
-
-  name = "${var.project}-eks-nodes-role-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-
-  tags = merge(var.tags, {
-    Name = "${var.project}-eks-nodes-role-${var.environment}"
-    Role = "eks-nodes"
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
-  count = var.create_eks_node_role ? 1 : 0
-
-  role       = aws_iam_role.eks_nodes[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
-  count = var.create_eks_node_role ? 1 : 0
-
-  role       = aws_iam_role.eks_nodes[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_container_registry" {
-  count = var.create_eks_node_role ? 1 : 0
-
-  role       = aws_iam_role.eks_nodes[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_ssm" {
-  count = var.create_eks_node_role && var.enable_ssm_for_nodes ? 1 : 0
-
-  role       = aws_iam_role.eks_nodes[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-################################################################################
 # VPC Flow Logs Role
 ################################################################################
 

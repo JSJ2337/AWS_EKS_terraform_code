@@ -44,22 +44,6 @@ variable "create_eks_cluster_role" {
 }
 
 ################################################################################
-# EKS Node Role
-################################################################################
-
-variable "create_eks_node_role" {
-  description = "Whether to create EKS node role"
-  type        = bool
-  default     = true
-}
-
-variable "enable_ssm_for_nodes" {
-  description = "Enable SSM access for EKS nodes"
-  type        = bool
-  default     = true
-}
-
-################################################################################
 # VPC Flow Logs Role
 ################################################################################
 
@@ -86,7 +70,7 @@ variable "create_rds_monitoring_role" {
 variable "create_fargate_pod_execution_role" {
   description = "Whether to create Fargate pod execution role"
   type        = bool
-  default     = false
+  default     = true
 }
 
 ################################################################################

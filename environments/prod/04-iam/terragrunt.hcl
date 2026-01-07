@@ -34,15 +34,13 @@ inputs = {
   environment  = local.common.locals.environment
   cluster_name = local.common.locals.cluster_name
 
-  # EKS 기본 역할 생성
+  # EKS 역할 생성
   create_eks_admin_role   = true
   create_eks_cluster_role = true
-  create_eks_node_role    = local.common.locals.use_ec2_nodegroups
   eks_admin_require_mfa   = true
-  enable_ssm_for_nodes    = true
 
-  # Fargate 역할 생성
-  create_fargate_pod_execution_role = !local.common.locals.use_ec2_nodegroups
+  # Fargate Pod Execution 역할 생성
+  create_fargate_pod_execution_role = true
 
   # 서비스 역할 생성
   create_flow_logs_role      = true
