@@ -195,10 +195,12 @@ resource "aws_security_group_rule" "elasticache_ingress_nodes" {
 }
 
 ################################################################################
-# EKS Cluster IAM Role
+# EKS Cluster IAM Role (optional - prefer using IAM module)
 ################################################################################
 
 resource "aws_iam_role" "eks_cluster" {
+  count = var.create_iam_roles ? 1 : 0
+
   name = "${var.project}-eks-cluster-role-${var.environment}"
 
   assume_role_policy = jsonencode({
@@ -218,20 +220,26 @@ resource "aws_iam_role" "eks_cluster" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_cluster.name
+  role       = aws_iam_role.eks_cluster[0].name
 }
 
 resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  role       = aws_iam_role.eks_cluster.name
+  role       = aws_iam_role.eks_cluster[0].name
 }
 
 ################################################################################
-# EKS Node Group IAM Role
+# EKS Node Group IAM Role (optional - prefer using IAM module)
 ################################################################################
 
 resource "aws_iam_role" "eks_nodes" {
+  count = var.create_iam_roles ? 1 : 0
+
   name = "${var.project}-eks-nodes-role-${var.environment}"
 
   assume_role_policy = jsonencode({
@@ -251,26 +259,43 @@ resource "aws_iam_role" "eks_nodes" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.eks_nodes[0].name
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.eks_nodes[0].name
 }
 
 resource "aws_iam_role_policy_attachment" "eks_container_registry" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.eks_nodes[0].name
 }
 
 resource "aws_iam_role_policy_attachment" "eks_ssm" {
+  count = var.create_iam_roles ? 1 : 0
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.eks_nodes[0].name
+}
+
+################################################################################
+# EKS Node Instance Profile
+################################################################################
+
+locals {
+  # Use external role name if provided, otherwise use internally created role
+  eks_node_role_name = var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name
 }
 
 resource "aws_iam_instance_profile" "eks_nodes" {
   name = "${var.project}-eks-nodes-profile-${var.environment}"
-  role = aws_iam_role.eks_nodes.name
+  role = local.eks_node_role_name
 }

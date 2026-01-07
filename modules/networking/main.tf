@@ -204,10 +204,17 @@ resource "aws_route_table_association" "database" {
 # VPC Flow Logs
 ################################################################################
 
-resource "aws_flow_log" "main" {
-  count = var.enable_flow_logs ? 1 : 0
+locals {
+  # Use external role ARN if provided, otherwise use internally created role
+  flow_logs_role_arn = var.flow_logs_role_arn != null ? var.flow_logs_role_arn : (
+    var.create_flow_logs_iam_role && var.enable_flow_logs ? aws_iam_role.flow_logs[0].arn : null
+  )
+}
 
-  iam_role_arn    = aws_iam_role.flow_logs[0].arn
+resource "aws_flow_log" "main" {
+  count = var.enable_flow_logs && local.flow_logs_role_arn != null ? 1 : 0
+
+  iam_role_arn    = local.flow_logs_role_arn
   log_destination = var.flow_logs_log_group_arn
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
@@ -217,8 +224,12 @@ resource "aws_flow_log" "main" {
   })
 }
 
+################################################################################
+# VPC Flow Logs IAM Role (optional - prefer using IAM module)
+################################################################################
+
 resource "aws_iam_role" "flow_logs" {
-  count = var.enable_flow_logs ? 1 : 0
+  count = var.create_flow_logs_iam_role && var.enable_flow_logs ? 1 : 0
 
   name = "${var.project}-vpc-flow-logs-${var.environment}"
 
@@ -234,10 +245,12 @@ resource "aws_iam_role" "flow_logs" {
       }
     ]
   })
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy" "flow_logs" {
-  count = var.enable_flow_logs ? 1 : 0
+  count = var.create_flow_logs_iam_role && var.enable_flow_logs ? 1 : 0
 
   name = "${var.project}-vpc-flow-logs-${var.environment}"
   role = aws_iam_role.flow_logs[0].id

@@ -82,6 +82,18 @@ variable "flow_logs_log_group_arn" {
   default     = null
 }
 
+variable "flow_logs_role_arn" {
+  description = "IAM Role ARN for VPC Flow Logs (from IAM module)"
+  type        = string
+  default     = null
+}
+
+variable "create_flow_logs_iam_role" {
+  description = "Whether to create IAM role for flow logs in this module (set false when using IAM module)"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

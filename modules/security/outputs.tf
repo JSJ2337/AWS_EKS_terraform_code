@@ -29,24 +29,32 @@ output "elasticache_security_group_id" {
 }
 
 # IAM Roles
+locals {
+  # Use external role ARN/name if provided, otherwise use internally created role
+  eks_cluster_role_arn  = var.create_iam_roles ? aws_iam_role.eks_cluster[0].arn : var.eks_cluster_role_arn
+  eks_cluster_role_name = var.create_iam_roles ? aws_iam_role.eks_cluster[0].name : var.eks_cluster_role_name
+  eks_nodes_role_arn    = var.create_iam_roles ? aws_iam_role.eks_nodes[0].arn : var.eks_node_role_arn
+  eks_nodes_role_name   = var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name
+}
+
 output "eks_cluster_role_arn" {
   description = "EKS cluster IAM role ARN"
-  value       = aws_iam_role.eks_cluster.arn
+  value       = local.eks_cluster_role_arn
 }
 
 output "eks_cluster_role_name" {
   description = "EKS cluster IAM role name"
-  value       = aws_iam_role.eks_cluster.name
+  value       = local.eks_cluster_role_name
 }
 
 output "eks_nodes_role_arn" {
   description = "EKS nodes IAM role ARN"
-  value       = aws_iam_role.eks_nodes.arn
+  value       = local.eks_nodes_role_arn
 }
 
 output "eks_nodes_role_name" {
   description = "EKS nodes IAM role name"
-  value       = aws_iam_role.eks_nodes.name
+  value       = local.eks_nodes_role_name
 }
 
 output "eks_nodes_instance_profile_arn" {

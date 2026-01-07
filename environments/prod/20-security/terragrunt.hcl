@@ -1,6 +1,6 @@
 ################################################################################
 # Security Layer
-# Security Groups, IAM Roles
+# Security Groups (IAM Roles from 04-iam module)
 ################################################################################
 
 include "root" {
@@ -29,9 +29,32 @@ dependency "networking" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
+dependency "iam" {
+  config_path = "../04-iam"
+
+  mock_outputs = {
+    eks_admin_role_arn      = "arn:aws:iam::123456789012:role/mock-eks-admin"
+    eks_cluster_role_arn    = "arn:aws:iam::123456789012:role/mock-eks-cluster"
+    eks_cluster_role_name   = "mock-eks-cluster"
+    eks_node_role_arn       = "arn:aws:iam::123456789012:role/mock-eks-nodes"
+    eks_node_role_name      = "mock-eks-nodes"
+    flow_logs_role_arn      = "arn:aws:iam::123456789012:role/mock-flow-logs"
+    rds_monitoring_role_arn = "arn:aws:iam::123456789012:role/mock-rds-monitoring"
+  }
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
+}
+
 inputs = {
   vpc_id       = dependency.networking.outputs.vpc_id
   cluster_name = local.common.locals.cluster_name
+
+  # IAM roles from 04-iam module
+  create_iam_roles      = false
+  eks_cluster_role_arn  = dependency.iam.outputs.eks_cluster_role_arn
+  eks_cluster_role_name = dependency.iam.outputs.eks_cluster_role_name
+  eks_node_role_arn     = dependency.iam.outputs.eks_node_role_arn
+  eks_node_role_name    = dependency.iam.outputs.eks_node_role_name
 
   # Common tags
   tags = local.common.locals.common_tags
