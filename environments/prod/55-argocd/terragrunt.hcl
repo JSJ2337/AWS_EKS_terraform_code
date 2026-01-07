@@ -37,7 +37,10 @@ dependency "fargate" {
   config_path  = "../40-fargate"
   skip_outputs = true
 
-  mock_outputs = {}
+  mock_outputs = {
+    system_fargate_profile_id      = "mock-system-profile"
+    application_fargate_profile_id = "mock-app-profile"
+  }
   mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
