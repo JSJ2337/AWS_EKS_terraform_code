@@ -287,15 +287,12 @@ resource "aws_iam_role_policy_attachment" "eks_ssm" {
 }
 
 ################################################################################
-# EKS Node Instance Profile
+# EKS Node Instance Profile (EC2 Node Groups only)
 ################################################################################
 
-locals {
-  # Use external role name if provided, otherwise use internally created role
-  eks_node_role_name = var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name
-}
-
 resource "aws_iam_instance_profile" "eks_nodes" {
+  count = var.use_ec2_nodegroups ? 1 : 0
+
   name = "${var.project}-eks-nodes-profile-${var.environment}"
-  role = local.eks_node_role_name
+  role = var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name
 }

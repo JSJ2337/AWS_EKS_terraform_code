@@ -66,3 +66,9 @@ variable "create_iam_roles" {
   type        = bool
   default     = true
 }
+
+variable "use_ec2_nodegroups" {
+  description = "Whether using EC2 node groups (false for Fargate-only, skips instance profile creation)"
+  type        = bool
+  default     = false
+}

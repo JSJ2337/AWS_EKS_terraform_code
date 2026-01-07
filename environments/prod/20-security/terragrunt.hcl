@@ -52,6 +52,9 @@ inputs = {
   eks_cluster_role_arn  = dependency.iam.outputs.eks_cluster_role_arn
   eks_cluster_role_name = dependency.iam.outputs.eks_cluster_role_name
 
+  # EC2 Node Groups vs Fargate
+  use_ec2_nodegroups = local.common.locals.use_ec2_nodegroups
+
   # Common tags
   tags = local.common.locals.common_tags
 }

@@ -29,40 +29,32 @@ output "elasticache_security_group_id" {
 }
 
 # IAM Roles
-locals {
-  # Use external role ARN/name if provided, otherwise use internally created role
-  eks_cluster_role_arn  = var.create_iam_roles ? aws_iam_role.eks_cluster[0].arn : var.eks_cluster_role_arn
-  eks_cluster_role_name = var.create_iam_roles ? aws_iam_role.eks_cluster[0].name : var.eks_cluster_role_name
-  eks_nodes_role_arn    = var.create_iam_roles ? aws_iam_role.eks_nodes[0].arn : var.eks_node_role_arn
-  eks_nodes_role_name   = var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name
-}
-
 output "eks_cluster_role_arn" {
   description = "EKS cluster IAM role ARN"
-  value       = local.eks_cluster_role_arn
+  value       = var.create_iam_roles ? aws_iam_role.eks_cluster[0].arn : var.eks_cluster_role_arn
 }
 
 output "eks_cluster_role_name" {
   description = "EKS cluster IAM role name"
-  value       = local.eks_cluster_role_name
+  value       = var.create_iam_roles ? aws_iam_role.eks_cluster[0].name : var.eks_cluster_role_name
 }
 
 output "eks_nodes_role_arn" {
-  description = "EKS nodes IAM role ARN"
-  value       = local.eks_nodes_role_arn
+  description = "EKS nodes IAM role ARN (null if using Fargate)"
+  value       = var.use_ec2_nodegroups ? (var.create_iam_roles ? aws_iam_role.eks_nodes[0].arn : var.eks_node_role_arn) : null
 }
 
 output "eks_nodes_role_name" {
-  description = "EKS nodes IAM role name"
-  value       = local.eks_nodes_role_name
+  description = "EKS nodes IAM role name (null if using Fargate)"
+  value       = var.use_ec2_nodegroups ? (var.create_iam_roles ? aws_iam_role.eks_nodes[0].name : var.eks_node_role_name) : null
 }
 
 output "eks_nodes_instance_profile_arn" {
-  description = "EKS nodes instance profile ARN"
-  value       = aws_iam_instance_profile.eks_nodes.arn
+  description = "EKS nodes instance profile ARN (null if using Fargate)"
+  value       = var.use_ec2_nodegroups ? aws_iam_instance_profile.eks_nodes[0].arn : null
 }
 
 output "eks_nodes_instance_profile_name" {
-  description = "EKS nodes instance profile name"
-  value       = aws_iam_instance_profile.eks_nodes.name
+  description = "EKS nodes instance profile name (null if using Fargate)"
+  value       = var.use_ec2_nodegroups ? aws_iam_instance_profile.eks_nodes[0].name : null
 }
