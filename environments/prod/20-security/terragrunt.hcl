@@ -36,8 +36,6 @@ dependency "iam" {
     eks_admin_role_arn      = "arn:aws:iam::123456789012:role/mock-eks-admin"
     eks_cluster_role_arn    = "arn:aws:iam::123456789012:role/mock-eks-cluster"
     eks_cluster_role_name   = "mock-eks-cluster"
-    eks_node_role_arn       = "arn:aws:iam::123456789012:role/mock-eks-nodes"
-    eks_node_role_name      = "mock-eks-nodes"
     flow_logs_role_arn      = "arn:aws:iam::123456789012:role/mock-flow-logs"
     rds_monitoring_role_arn = "arn:aws:iam::123456789012:role/mock-rds-monitoring"
   }
@@ -53,8 +51,6 @@ inputs = {
   create_iam_roles      = false
   eks_cluster_role_arn  = dependency.iam.outputs.eks_cluster_role_arn
   eks_cluster_role_name = dependency.iam.outputs.eks_cluster_role_name
-  eks_node_role_arn     = dependency.iam.outputs.eks_node_role_arn
-  eks_node_role_name    = dependency.iam.outputs.eks_node_role_name
 
   # Common tags
   tags = local.common.locals.common_tags
