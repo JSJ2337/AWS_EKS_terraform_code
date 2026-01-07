@@ -1,26 +1,31 @@
 name: Terragrunt Plan
 
 on:
-  # PR 생성 시 자동 실행
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'environments/**'
-      - 'modules/**'
-      - '.github/workflows/terragrunt-*.yml'
-
-  # main 브랜치에 push 시 자동 실행
-  push:
-    branches:
-      - main
-    paths:
-      - 'environments/**'
-      - 'modules/**'
-      - '.github/workflows/terragrunt-*.yml'
-
-  # 수동 실행 가능
   workflow_dispatch:
+    inputs:
+      layer:
+        description: '플랜할 레이어 (전체는 all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - 00-foundation
+          - 05-cloudwatch
+          - 10-networking
+          - 20-security
+          - 30-eks-cluster
+          - 40-nodegroups
+          - 50-addons
+          - 55-argocd
+          - 60-database
+      environment:
+        description: '환경'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
 
 env:
   AWS_REGION: ap-northeast-2
@@ -31,15 +36,112 @@ env:
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
 
 jobs:
-  plan:
-    name: Terragrunt Plan
+  plan-all:
+    name: Plan All Layers (순차)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: environments/prod
+    environment: jsj_eks_prod
+    if: ${{ inputs.layer == 'all' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Plan 00-foundation
+        working-directory: environments/${{ inputs.environment }}/00-foundation
+        run: |
+          echo ">>> Planning 00-foundation..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 05-cloudwatch
+        working-directory: environments/${{ inputs.environment }}/05-cloudwatch
+        run: |
+          echo ">>> Planning 05-cloudwatch..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 10-networking
+        working-directory: environments/${{ inputs.environment }}/10-networking
+        run: |
+          echo ">>> Planning 10-networking..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 20-security
+        working-directory: environments/${{ inputs.environment }}/20-security
+        run: |
+          echo ">>> Planning 20-security..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 30-eks-cluster
+        working-directory: environments/${{ inputs.environment }}/30-eks-cluster
+        run: |
+          echo ">>> Planning 30-eks-cluster..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 40-nodegroups
+        working-directory: environments/${{ inputs.environment }}/40-nodegroups
+        run: |
+          echo ">>> Planning 40-nodegroups..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 50-addons
+        working-directory: environments/${{ inputs.environment }}/50-addons
+        run: |
+          echo ">>> Planning 50-addons..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 55-argocd
+        working-directory: environments/${{ inputs.environment }}/55-argocd
+        run: |
+          echo ">>> Planning 55-argocd..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Plan 60-database
+        working-directory: environments/${{ inputs.environment }}/60-database
+        run: |
+          echo ">>> Planning 60-database..."
+          terragrunt run init
+          terragrunt run -- plan
+
+      - name: Post Plan Summary
+        run: |
+          echo "## Terragrunt Plan All Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers planned:** 00-foundation → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  plan-single:
+    name: Plan Single Layer
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.layer != 'all' }}
 
     steps:
       - name: Checkout
@@ -65,60 +167,16 @@ jobs:
           terragrunt --version
 
       - name: Terragrunt Init
-        run: terragrunt run --all init
-
-      - name: Terragrunt Validate
-        run: terragrunt run --all validate
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
+        run: terragrunt run init
 
       - name: Terragrunt Plan
-        id: plan
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
+        run: terragrunt run -- plan
+
+      - name: Post Plan Summary
         run: |
-          terragrunt run --all plan 2>&1 | tee plan_output.txt
-          echo "plan_output<<EOF" >> $GITHUB_OUTPUT
-          cat plan_output.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Post Plan to PR
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `#### Terragrunt Plan 📖
-
-            <details><summary>Show Plan</summary>
-
-            \`\`\`hcl
-            ${{ steps.plan.outputs.plan_output }}
-            \`\`\`
-
-            </details>
-
-            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-
-      - name: Plan Summary (Push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "## Terragrunt Plan Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Plan Output (last 100 lines)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -100 plan_output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      - name: Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+          echo "## Terragrunt Plan Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layer:** ${{ inputs.layer }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
