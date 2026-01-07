@@ -272,3 +272,122 @@ resource "aws_iam_role_policy" "flow_logs" {
     ]
   })
 }
+
+################################################################################
+# VPC Endpoints for ECR, S3 (NAT Gateway 비용 절감)
+# Best Practice: Private subnet에서 ECR/S3 접근 시 VPC Endpoint 사용
+################################################################################
+
+# Security Group for Interface Endpoints
+resource "aws_security_group" "vpc_endpoints" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  name        = "${var.project}-vpc-endpoints-sg-${var.environment}"
+  description = "Security group for VPC endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "HTTPS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-vpc-endpoints-sg-${var.environment}"
+  })
+}
+
+# S3 Gateway Endpoint (무료)
+resource "aws_vpc_endpoint" "s3" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${var.region}.s3"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = concat(
+    aws_route_table.private[*].id,
+    [aws_route_table.database.id]
+  )
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-s3-endpoint-${var.environment}"
+  })
+}
+
+# ECR API Interface Endpoint
+resource "aws_vpc_endpoint" "ecr_api" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints[0].id]
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-ecr-api-endpoint-${var.environment}"
+  })
+}
+
+# ECR DKR Interface Endpoint (Docker Registry)
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints[0].id]
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-ecr-dkr-endpoint-${var.environment}"
+  })
+}
+
+# CloudWatch Logs Interface Endpoint (Fargate 로그용)
+resource "aws_vpc_endpoint" "logs" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.logs"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints[0].id]
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-logs-endpoint-${var.environment}"
+  })
+}
+
+# STS Interface Endpoint (IRSA용)
+resource "aws_vpc_endpoint" "sts" {
+  count = var.enable_vpc_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.sts"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints[0].id]
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-sts-endpoint-${var.environment}"
+  })
+}

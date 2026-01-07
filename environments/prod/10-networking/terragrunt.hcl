@@ -71,6 +71,9 @@ inputs = {
   create_flow_logs_iam_role = false
   flow_logs_role_arn        = dependency.iam.outputs.flow_logs_role_arn
 
+  # VPC Endpoints (ECR, S3, CloudWatch Logs, STS)
+  enable_vpc_endpoints = local.common.locals.enable_vpc_endpoints
+
   # Common tags
   tags = local.common.locals.common_tags
 }

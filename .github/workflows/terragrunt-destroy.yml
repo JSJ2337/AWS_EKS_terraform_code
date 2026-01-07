@@ -12,6 +12,7 @@ on:
           - 60-database
           - 55-argocd
           - 50-addons
+          - 45-ecr
           - 40-fargate
           - 30-eks-cluster
           - 20-security
@@ -92,6 +93,13 @@ jobs:
           terragrunt run init
           terragrunt run -- destroy -auto-approve
 
+      - name: Destroy 45-ecr
+        working-directory: environments/${{ inputs.environment }}/45-ecr
+        run: |
+          echo ">>> Destroying 45-ecr..."
+          terragrunt run init || true
+          terragrunt run -- destroy -auto-approve || echo "45-ecr not found or already destroyed"
+
       - name: Destroy 40-fargate
         working-directory: environments/${{ inputs.environment }}/40-fargate
         run: |
@@ -145,7 +153,7 @@ jobs:
         run: |
           echo "## Terragrunt Destroy All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers destroyed:** 60-database → 55-argocd → 50-addons → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers destroyed:** 60-database → 55-argocd → 50-addons → 45-ecr → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   destroy-single:

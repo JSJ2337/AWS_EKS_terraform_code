@@ -17,6 +17,7 @@ on:
           - 20-security
           - 30-eks-cluster
           - 40-fargate
+          - 45-ecr
           - 50-addons
           - 55-argocd
           - 60-database
@@ -121,6 +122,13 @@ jobs:
           terragrunt run init
           terragrunt run -- apply -auto-approve
 
+      - name: Apply 45-ecr
+        working-directory: environments/${{ inputs.environment }}/45-ecr
+        run: |
+          echo ">>> Applying 45-ecr..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
       - name: Apply 50-addons
         working-directory: environments/${{ inputs.environment }}/50-addons
         run: |
@@ -146,7 +154,7 @@ jobs:
         run: |
           echo "## Terragrunt Apply All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 45-ecr → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   apply-single:

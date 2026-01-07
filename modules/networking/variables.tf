@@ -94,6 +94,12 @@ variable "create_flow_logs_iam_role" {
   default     = true
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints for ECR, S3, CloudWatch Logs, STS (reduces NAT Gateway costs)"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

@@ -49,6 +49,9 @@ locals {
   # Pod 전용 서브넷 활성화
   enable_pod_subnets = true
 
+  # VPC Endpoints 활성화 (ECR, S3, CloudWatch Logs, STS - NAT Gateway 비용 절감)
+  enable_vpc_endpoints = true
+
   ############################################################################
   # EKS Fargate 설정
   ############################################################################
@@ -175,6 +178,44 @@ locals {
 
     # CloudWatch 로그
     enabled_cloudwatch_logs_exports = ["audit", "error", "slowquery"]
+  }
+
+  ############################################################################
+  # ECR 설정
+  ############################################################################
+
+  ecr = {
+    # ECR 리포지토리 목록
+    repositories = {
+      "app" = {
+        image_tag_mutability = "IMMUTABLE"  # 프로덕션 권장
+        scan_on_push         = true
+      }
+      "api" = {
+        image_tag_mutability = "IMMUTABLE"
+        scan_on_push         = true
+      }
+    }
+
+    # KMS 암호화 사용 여부 (foundation의 KMS 키 사용)
+    use_kms_encryption = true
+
+    # 테스트 환경용 (프로덕션에서는 false 권장)
+    force_delete = true
+
+    # 라이프사이클 정책
+    lifecycle = {
+      untagged_retention_days = 1   # untagged 이미지 1일 후 삭제
+      max_image_count         = 30  # 최대 30개 이미지 유지
+      cleanup_dev_images      = true
+      dev_retention_days      = 14  # dev/test 이미지 14일 후 삭제
+    }
+
+    # Pull Through Cache (Docker Hub, ECR Public 캐싱)
+    enable_pull_through_cache = false
+
+    # Enhanced Scanning (AWS Inspector 연동)
+    enable_enhanced_scanning = false
   }
 
   ############################################################################
