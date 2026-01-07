@@ -11,6 +11,7 @@ on:
         options:
           - all
           - 00-foundation
+          - 04-iam
           - 05-cloudwatch
           - 10-networking
           - 20-security
@@ -78,6 +79,13 @@ jobs:
           terragrunt run init
           terragrunt run -- plan
 
+      - name: Plan 04-iam
+        working-directory: environments/${{ inputs.environment }}/04-iam
+        run: |
+          echo ">>> Planning 04-iam..."
+          terragrunt run init
+          terragrunt run -- plan
+
       - name: Plan 05-cloudwatch
         working-directory: environments/${{ inputs.environment }}/05-cloudwatch
         run: |
@@ -138,7 +146,7 @@ jobs:
         run: |
           echo "## Terragrunt Plan All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers planned:** 00-foundation → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers planned:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   plan-single:
