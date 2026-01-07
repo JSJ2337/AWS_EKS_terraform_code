@@ -1,7 +1,6 @@
 name: Terragrunt Apply
 
 on:
-  # 수동 실행만 허용 (자동 apply 방지)
   workflow_dispatch:
     inputs:
       layer:
@@ -39,13 +38,11 @@ permissions:
   contents: read
 
 jobs:
-  apply:
-    name: Terragrunt Apply
+  apply-all:
+    name: Apply All Layers (순차)
     runs-on: ubuntu-latest
     environment: jsj_eks_prod
-    defaults:
-      run:
-        working-directory: environments/${{ inputs.environment || 'prod' }}
+    if: ${{ inputs.layer == 'all' }}
 
     steps:
       - name: Checkout
@@ -70,28 +67,116 @@ jobs:
           sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
           terragrunt --version
 
-      - name: Terragrunt Init (All)
-        if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run --all init
+      - name: Apply 00-foundation
+        working-directory: environments/${{ inputs.environment }}/00-foundation
+        run: |
+          echo ">>> Applying 00-foundation..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
 
-      - name: Terragrunt Init (Single Layer)
-        if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
-        working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
+      - name: Apply 05-cloudwatch
+        working-directory: environments/${{ inputs.environment }}/05-cloudwatch
+        run: |
+          echo ">>> Applying 05-cloudwatch..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 10-networking
+        working-directory: environments/${{ inputs.environment }}/10-networking
+        run: |
+          echo ">>> Applying 10-networking..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 20-security
+        working-directory: environments/${{ inputs.environment }}/20-security
+        run: |
+          echo ">>> Applying 20-security..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 30-eks-cluster
+        working-directory: environments/${{ inputs.environment }}/30-eks-cluster
+        run: |
+          echo ">>> Applying 30-eks-cluster..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 40-nodegroups
+        working-directory: environments/${{ inputs.environment }}/40-nodegroups
+        run: |
+          echo ">>> Applying 40-nodegroups..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 50-addons
+        working-directory: environments/${{ inputs.environment }}/50-addons
+        run: |
+          echo ">>> Applying 50-addons..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 55-argocd
+        working-directory: environments/${{ inputs.environment }}/55-argocd
+        run: |
+          echo ">>> Applying 55-argocd..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Apply 60-database
+        working-directory: environments/${{ inputs.environment }}/60-database
+        run: |
+          echo ">>> Applying 60-database..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
+      - name: Post Apply Summary
+        run: |
+          echo "## Terragrunt Apply All Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers applied:** 00-foundation → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  apply-single:
+    name: Apply Single Layer
+    runs-on: ubuntu-latest
+    environment: jsj_eks_prod
+    if: ${{ inputs.layer != 'all' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        run: |
+          wget -q https://github.com/gruntwork-io/terragrunt/releases/download/v${{ env.TG_VERSION }}/terragrunt_linux_amd64
+          chmod +x terragrunt_linux_amd64
+          sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt Init
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
         run: terragrunt run init
 
-      - name: Terragrunt Apply (All)
-        if: ${{ inputs.layer == 'all' || inputs.layer == '' }}
-        run: terragrunt run --all apply
-
-      - name: Terragrunt Apply (Single Layer)
-        if: ${{ inputs.layer != 'all' && inputs.layer != '' }}
-        working-directory: environments/${{ inputs.environment || 'prod' }}/${{ inputs.layer }}
+      - name: Terragrunt Apply
+        working-directory: environments/${{ inputs.environment }}/${{ inputs.layer }}
         run: terragrunt run -- apply -auto-approve
 
       - name: Post Apply Summary
         run: |
-          echo "## Terragrunt Apply Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** ${{ inputs.environment || 'prod' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layer:** ${{ inputs.layer || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Terragrunt Apply Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layer:** ${{ inputs.layer }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
