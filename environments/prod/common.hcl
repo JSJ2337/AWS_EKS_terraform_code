@@ -50,8 +50,33 @@ locals {
   enable_pod_subnets = true
 
   ############################################################################
-  # EKS 노드 그룹 설정
+  # EKS Fargate 설정
   ############################################################################
+
+  fargate = {
+    # System Profile (kube-system, argocd)
+    system_profile = {
+      enabled = true
+    }
+
+    # Application Profile (default, custom namespaces)
+    application_profile = {
+      enabled    = true
+      namespaces = ["app", "staging"]
+    }
+
+    # Monitoring Profile (prometheus, grafana, loki)
+    monitoring_profile = {
+      enabled = false
+    }
+  }
+
+  ############################################################################
+  # EKS 노드 그룹 설정 (EC2 - Fargate 사용 시 비활성화)
+  ############################################################################
+
+  # EC2 Node Group 사용 여부 (Fargate 전환 시 false)
+  use_ec2_nodegroups = false
 
   # System Node Group (CoreDNS, kube-proxy, ArgoCD 등)
   system_node_group = {
@@ -83,10 +108,17 @@ locals {
   ############################################################################
 
   addons = {
-    enable_ebs_csi            = true
-    enable_pod_identity       = true
-    enable_aws_lb_controller  = true
-    enable_cluster_autoscaler = true
+    # EBS CSI: Fargate에서는 EBS 미지원 (EFS만 사용 가능)
+    enable_ebs_csi = !local.use_ec2_nodegroups ? false : true
+
+    # Pod Identity: Fargate/EC2 모두 지원
+    enable_pod_identity = true
+
+    # AWS LB Controller: Fargate/EC2 모두 필요
+    enable_aws_lb_controller = true
+
+    # Cluster Autoscaler: Fargate는 자동 스케일링이므로 불필요
+    enable_cluster_autoscaler = local.use_ec2_nodegroups
   }
 
   ############################################################################

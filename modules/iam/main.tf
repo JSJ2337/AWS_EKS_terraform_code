@@ -237,3 +237,50 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring" {
   role       = aws_iam_role.rds_monitoring[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
+
+################################################################################
+# Fargate Pod Execution Role
+################################################################################
+
+resource "aws_iam_role" "fargate_pod_execution" {
+  count = var.create_fargate_pod_execution_role ? 1 : 0
+
+  name = "${var.project}-fargate-pod-execution-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "eks-fargate-pods.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-fargate-pod-execution-${var.environment}"
+    Role = "fargate-pod-execution"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "fargate_pod_execution" {
+  count = var.create_fargate_pod_execution_role ? 1 : 0
+
+  role       = aws_iam_role.fargate_pod_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "fargate_ecr" {
+  count = var.create_fargate_pod_execution_role ? 1 : 0
+
+  role       = aws_iam_role.fargate_pod_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}

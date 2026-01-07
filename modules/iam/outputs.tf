@@ -72,3 +72,16 @@ output "rds_monitoring_role_name" {
   value       = var.create_rds_monitoring_role ? aws_iam_role.rds_monitoring[0].name : null
 }
 
+################################################################################
+# Fargate Pod Execution Role
+################################################################################
+
+output "fargate_pod_execution_role_arn" {
+  description = "ARN of Fargate pod execution role"
+  value       = var.create_fargate_pod_execution_role ? aws_iam_role.fargate_pod_execution[0].arn : null
+}
+
+output "fargate_pod_execution_role_name" {
+  description = "Name of Fargate pod execution role"
+  value       = var.create_fargate_pod_execution_role ? aws_iam_role.fargate_pod_execution[0].name : null
+}

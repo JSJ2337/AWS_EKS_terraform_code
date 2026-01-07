@@ -16,7 +16,7 @@ on:
           - 10-networking
           - 20-security
           - 30-eks-cluster
-          - 40-nodegroups
+          - 40-fargate
           - 50-addons
           - 55-argocd
           - 60-database
@@ -114,10 +114,10 @@ jobs:
           terragrunt run init
           terragrunt run -- apply -auto-approve
 
-      - name: Apply 40-nodegroups
-        working-directory: environments/${{ inputs.environment }}/40-nodegroups
+      - name: Apply 40-fargate
+        working-directory: environments/${{ inputs.environment }}/40-fargate
         run: |
-          echo ">>> Applying 40-nodegroups..."
+          echo ">>> Applying 40-fargate..."
           terragrunt run init
           terragrunt run -- apply -auto-approve
 
@@ -146,7 +146,7 @@ jobs:
         run: |
           echo "## Terragrunt Apply All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-nodegroups → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   apply-single:

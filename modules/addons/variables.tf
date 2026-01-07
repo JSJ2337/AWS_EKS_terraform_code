@@ -94,6 +94,12 @@ variable "enable_cluster_autoscaler" {
   default     = true
 }
 
+variable "use_fargate" {
+  description = "Whether using Fargate for compute (affects CoreDNS configuration)"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

@@ -37,6 +37,12 @@ resource "aws_eks_addon" "coredns" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
+  # Fargate 사용 시 computeType을 Fargate로 설정
+  # 이 설정이 없으면 CoreDNS가 EC2 노드를 찾다가 Pending 상태가 됨
+  configuration_values = var.use_fargate ? jsonencode({
+    computeType = "Fargate"
+  }) : null
+
   tags = var.tags
 
   depends_on = [aws_eks_addon.vpc_cni]

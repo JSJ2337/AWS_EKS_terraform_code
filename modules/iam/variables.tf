@@ -80,6 +80,16 @@ variable "create_rds_monitoring_role" {
 }
 
 ################################################################################
+# Fargate Pod Execution Role
+################################################################################
+
+variable "create_fargate_pod_execution_role" {
+  description = "Whether to create Fargate pod execution role"
+  type        = bool
+  default     = false
+}
+
+################################################################################
 # Common
 ################################################################################
 

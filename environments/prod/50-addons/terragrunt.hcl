@@ -28,10 +28,23 @@ dependency "eks_cluster" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
+# Fargate 사용 시 Fargate Profile이 먼저 생성되어야 CoreDNS가 스케줄링됨
+dependency "fargate" {
+  config_path = "../40-fargate"
+  skip_outputs = true
+
+  mock_outputs = {}
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
+}
+
 inputs = {
   cluster_name      = dependency.eks_cluster.outputs.cluster_name
   oidc_provider_arn = dependency.eks_cluster.outputs.oidc_provider_arn
   oidc_provider_id  = dependency.eks_cluster.outputs.oidc_provider_id
+
+  # Fargate 사용 여부 (CoreDNS 설정에 영향)
+  use_fargate = !local.common.locals.use_ec2_nodegroups
 
   # Add-on toggles
   enable_ebs_csi            = local.common.locals.addons.enable_ebs_csi
