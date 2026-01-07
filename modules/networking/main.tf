@@ -208,20 +208,13 @@ resource "aws_flow_log" "main" {
   count = var.enable_flow_logs ? 1 : 0
 
   iam_role_arn    = aws_iam_role.flow_logs[0].arn
-  log_destination = aws_cloudwatch_log_group.flow_logs[0].arn
+  log_destination = var.flow_logs_log_group_arn
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
 
   tags = merge(var.tags, {
     Name = "${var.project}-flow-logs-${var.environment}"
   })
-}
-
-resource "aws_cloudwatch_log_group" "flow_logs" {
-  count = var.enable_flow_logs ? 1 : 0
-
-  name              = "/aws/vpc/${var.project}-${var.environment}/flow-logs"
-  retention_in_days = 30
 }
 
 resource "aws_iam_role" "flow_logs" {

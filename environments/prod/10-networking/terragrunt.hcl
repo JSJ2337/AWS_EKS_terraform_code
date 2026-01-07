@@ -29,6 +29,17 @@ dependency "foundation" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
+dependency "cloudwatch" {
+  config_path = "../05-cloudwatch"
+
+  mock_outputs = {
+    vpc_flow_log_group_arn = "arn:aws:logs:ap-northeast-2:123456789012:log-group:/aws/vpc/mock/flow-logs"
+    eks_log_group_arn      = "arn:aws:logs:ap-northeast-2:123456789012:log-group:/aws/eks/mock/cluster"
+  }
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
+}
+
 inputs = {
   vpc_cidr           = local.common.locals.vpc_cidr
   availability_zones = local.common.locals.availability_zones
@@ -42,6 +53,9 @@ inputs = {
   enable_pod_subnets = local.common.locals.enable_pod_subnets
   single_nat_gateway = local.common.locals.single_nat_gateway
   enable_flow_logs   = local.common.locals.enable_flow_logs
+
+  # CloudWatch Log Group for VPC Flow Logs (from 05-cloudwatch)
+  flow_logs_log_group_arn = dependency.cloudwatch.outputs.vpc_flow_log_group_arn
 
   # Common tags
   tags = local.common.locals.common_tags

@@ -76,6 +76,12 @@ variable "enable_flow_logs" {
   default     = true
 }
 
+variable "flow_logs_log_group_arn" {
+  description = "CloudWatch Log Group ARN for VPC Flow Logs (created by cloudwatch module)"
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
