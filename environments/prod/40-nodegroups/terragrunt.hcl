@@ -18,27 +18,41 @@ dependency "networking" {
   config_path = "../10-networking"
 
   mock_outputs = {
-    private_subnet_ids = ["subnet-mock-1", "subnet-mock-2"]
+    vpc_id               = "vpc-mock"
+    private_subnet_ids   = ["subnet-mock-1", "subnet-mock-2"]
+    public_subnet_ids    = ["subnet-mock-3", "subnet-mock-4"]
+    database_subnet_ids  = ["subnet-mock-5", "subnet-mock-6"]
+    private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 dependency "security" {
   config_path = "../20-security"
 
   mock_outputs = {
-    eks_nodes_role_arn = "arn:aws:iam::123456789012:role/mock-role"
+    eks_cluster_security_group_id = "sg-mock"
+    eks_cluster_role_arn          = "arn:aws:iam::123456789012:role/mock-role"
+    eks_nodes_role_arn            = "arn:aws:iam::123456789012:role/mock-nodes-role"
+    eks_nodes_security_group_id   = "sg-mock-nodes"
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 dependency "eks_cluster" {
   config_path = "../30-eks-cluster"
 
   mock_outputs = {
-    cluster_name = "eks-prod-cluster"
+    cluster_name                       = "eks-prod-cluster"
+    cluster_endpoint                   = "https://mock.eks.amazonaws.com"
+    cluster_certificate_authority_data = "bW9jay1jZXJ0LWRhdGE="
+    oidc_provider_arn                  = "arn:aws:iam::123456789012:oidc-provider/mock"
+    oidc_provider_id                   = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 inputs = {

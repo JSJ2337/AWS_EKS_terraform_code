@@ -20,11 +20,14 @@ dependency "eks_cluster" {
   config_path = "../30-eks-cluster"
 
   mock_outputs = {
-    cluster_name              = "mock-cluster"
-    cluster_endpoint          = "https://mock.eks.amazonaws.com"
+    cluster_name                       = "mock-cluster"
+    cluster_endpoint                   = "https://mock.eks.amazonaws.com"
     cluster_certificate_authority_data = "bW9jay1jZXJ0LWRhdGE="
+    oidc_provider_arn                  = "arn:aws:iam::123456789012:oidc-provider/mock"
+    oidc_provider_id                   = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 # Node Group 의존성 (노드가 있어야 ArgoCD 배포 가능)
@@ -32,9 +35,11 @@ dependency "nodegroups" {
   config_path = "../40-nodegroups"
 
   mock_outputs = {
-    system_node_group_name = "mock-system-ng"
+    system_node_group_name      = "mock-system-ng"
+    application_node_group_name = "mock-app-ng"
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 # Helm/Kubernetes Provider 생성

@@ -18,11 +18,14 @@ dependency "eks_cluster" {
   config_path = "../30-eks-cluster"
 
   mock_outputs = {
-    cluster_name      = "eks-prod-cluster"
-    oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/mock"
-    oidc_provider_id  = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
+    cluster_name                       = "eks-prod-cluster"
+    cluster_endpoint                   = "https://mock.eks.amazonaws.com"
+    cluster_certificate_authority_data = "bW9jay1jZXJ0LWRhdGE="
+    oidc_provider_arn                  = "arn:aws:iam::123456789012:oidc-provider/mock"
+    oidc_provider_id                   = "oidc.eks.ap-northeast-2.amazonaws.com/id/MOCK"
   }
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 inputs = {

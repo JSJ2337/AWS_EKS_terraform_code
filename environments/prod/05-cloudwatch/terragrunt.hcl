@@ -19,9 +19,14 @@ dependency "foundation" {
   config_path = "../00-foundation"
 
   mock_outputs = {
-    kms_key_arn = "arn:aws:kms:ap-northeast-2:123456789012:key/mock-key-id"
+    kms_key_arn        = "arn:aws:kms:ap-northeast-2:123456789012:key/mock-key-id"
+    kms_key_id         = "mock-key-id"
+    eks_admin_role_arn = "arn:aws:iam::123456789012:role/mock-eks-admin"
+    account_id         = "123456789012"
+    region             = "ap-northeast-2"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 inputs = {
