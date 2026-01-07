@@ -42,11 +42,42 @@ dependency "nodegroups" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-# Helm/Kubernetes Provider 생성
-generate "k8s_provider" {
-  path      = "k8s_provider.tf"
+# root.hcl의 provider.tf 생성을 덮어쓰기 (helm, kubernetes 추가)
+generate "provider" {
+  path      = "provider.tf"
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
+terraform {
+  required_version = ">= 1.14"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.82"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-northeast-2"
+
+  default_tags {
+    tags = {
+      Project     = "jsj-eks"
+      Environment = "prod"
+      ManagedBy   = "terragrunt"
+    }
+  }
+}
+
 data "aws_eks_cluster_auth" "cluster" {
   name = "${dependency.eks_cluster.outputs.cluster_name}"
 }
