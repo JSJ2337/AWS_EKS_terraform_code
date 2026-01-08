@@ -88,12 +88,6 @@ variable "enable_aws_lb_controller" {
   default     = true
 }
 
-variable "enable_cluster_autoscaler" {
-  description = "Enable Cluster Autoscaler IRSA"
-  type        = bool
-  default     = true
-}
-
 variable "use_fargate" {
   description = "Whether using Fargate for compute (affects CoreDNS configuration)"
   type        = bool

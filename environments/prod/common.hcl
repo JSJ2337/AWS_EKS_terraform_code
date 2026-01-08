@@ -87,9 +87,6 @@ locals {
 
     # AWS LB Controller: Fargate 필요
     enable_aws_lb_controller = true
-
-    # Cluster Autoscaler: Fargate는 자동 스케일링이므로 불필요
-    enable_cluster_autoscaler = false
   }
 
   ############################################################################

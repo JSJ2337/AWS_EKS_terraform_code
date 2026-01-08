@@ -50,10 +50,9 @@ inputs = {
   use_fargate = true
 
   # Add-on toggles
-  enable_ebs_csi            = local.common.locals.addons.enable_ebs_csi
-  enable_pod_identity       = local.common.locals.addons.enable_pod_identity
-  enable_aws_lb_controller  = local.common.locals.addons.enable_aws_lb_controller
-  enable_cluster_autoscaler = local.common.locals.addons.enable_cluster_autoscaler
+  enable_ebs_csi           = local.common.locals.addons.enable_ebs_csi
+  enable_pod_identity      = local.common.locals.addons.enable_pod_identity
+  enable_aws_lb_controller = local.common.locals.addons.enable_aws_lb_controller
 
   # Add-on versions (null = latest compatible)
   vpc_cni_version      = null

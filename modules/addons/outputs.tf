@@ -31,8 +31,3 @@ output "aws_lb_controller_role_arn" {
   description = "AWS Load Balancer Controller IAM role ARN"
   value       = var.enable_aws_lb_controller ? aws_iam_role.aws_load_balancer_controller[0].arn : null
 }
-
-output "cluster_autoscaler_role_arn" {
-  description = "Cluster Autoscaler IAM role ARN"
-  value       = var.enable_cluster_autoscaler ? aws_iam_role.cluster_autoscaler[0].arn : null
-}
