@@ -184,6 +184,58 @@ locals {
   }
 
   ############################################################################
+  # VPC Lattice 설정
+  ############################################################################
+
+  vpc_lattice = {
+    # 인증 설정 (NONE 또는 AWS_IAM)
+    auth_type = "NONE"
+
+    # Security Group 사용 여부
+    enable_security_group = false
+
+    # Access Logs 설정
+    enable_access_logs         = true
+    access_logs_retention_days = 30
+
+    # Service Network Auth Policy (auth_type이 AWS_IAM일 때 사용)
+    service_network_auth_policy = null
+
+    # 서비스 정의 (필요에 따라 추가)
+    # 예시: frontend, backend, api 서비스
+    services = {
+      # 예시 서비스 - 필요에 따라 주석 해제 및 수정
+      # frontend = {
+      #   target_type           = "IP"
+      #   port                  = 80
+      #   protocol              = "HTTP"
+      #   health_check_path     = "/health"
+      #   health_check_protocol = "HTTP"
+      #   health_check_interval = 30
+      #   health_check_timeout  = 5
+      #   healthy_threshold     = 2
+      #   unhealthy_threshold   = 2
+      #   health_check_matcher  = "200-299"
+      #   listener_protocol     = "HTTP"
+      # }
+      #
+      # backend = {
+      #   target_type           = "IP"
+      #   port                  = 8080
+      #   protocol              = "HTTP"
+      #   health_check_path     = "/api/health"
+      #   health_check_protocol = "HTTP"
+      #   health_check_interval = 30
+      #   health_check_timeout  = 5
+      #   healthy_threshold     = 2
+      #   unhealthy_threshold   = 2
+      #   health_check_matcher  = "200-299"
+      #   listener_protocol     = "HTTP"
+      # }
+    }
+  }
+
+  ############################################################################
   # ArgoCD 설정
   ############################################################################
 

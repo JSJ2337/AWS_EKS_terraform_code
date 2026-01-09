@@ -20,6 +20,7 @@ on:
           - 45-ecr
           - 50-addons
           - 55-argocd
+          - 56-vpc-lattice
           - 60-database
       environment:
         description: '환경'
@@ -143,6 +144,13 @@ jobs:
           terragrunt run init
           terragrunt run -- apply -auto-approve
 
+      - name: Apply 56-vpc-lattice
+        working-directory: environments/${{ inputs.environment }}/56-vpc-lattice
+        run: |
+          echo ">>> Applying 56-vpc-lattice..."
+          terragrunt run init
+          terragrunt run -- apply -auto-approve
+
       - name: Apply 60-database
         working-directory: environments/${{ inputs.environment }}/60-database
         run: |
@@ -154,7 +162,7 @@ jobs:
         run: |
           echo "## Terragrunt Apply All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 45-ecr → 50-addons → 55-argocd → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 45-ecr → 50-addons → 55-argocd → 56-vpc-lattice → 60-database" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   apply-single:

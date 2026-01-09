@@ -32,3 +32,13 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+################################################################################
+# VPC Lattice
+################################################################################
+
+variable "enable_vpc_lattice" {
+  description = "VPC Lattice Security Group 생성 여부"
+  type        = bool
+  default     = false
+}

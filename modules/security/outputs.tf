@@ -27,3 +27,8 @@ output "elasticache_security_group_id" {
   description = "ElastiCache security group ID"
   value       = aws_security_group.elasticache.id
 }
+
+output "lattice_security_group_id" {
+  description = "VPC Lattice security group ID"
+  value       = var.enable_vpc_lattice ? aws_security_group.vpc_lattice[0].id : null
+}

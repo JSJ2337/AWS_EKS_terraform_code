@@ -125,12 +125,13 @@ flowchart TD
     FG --> AD[50-addons]
 
     AD --> ARGO[55-argocd]
+    AD --> LATTICE[56-vpc-lattice]
     AD --> DB[60-database]
     AD --> CA[70-cache]
     AD --> ST[80-storage]
 
-    ARGO --> ISTIO[Istio via ArgoCD]
     ARGO --> APPS[Applications via ArgoCD]
+    LATTICE --> APPS
 
     DB --> MO[90-monitoring]
     CA --> MO
@@ -156,6 +157,7 @@ flowchart TD
 | 40-fargate | Fargate Profiles | System, Application, Monitoring Profiles |
 | 50-addons | EKS 애드온 | VPC CNI, CoreDNS, kube-proxy, IRSA |
 | 55-argocd | GitOps CD | ArgoCD (Helm), App of Apps |
+| 56-vpc-lattice | 서비스 메시 | VPC Lattice Service Network, Services, Target Groups |
 | 60-database | 데이터베이스 | RDS, Parameter Group |
 | 70-cache | 캐시 | ElastiCache Redis |
 | 80-storage | 스토리지 | EBS CSI, EFS, S3 |

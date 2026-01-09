@@ -10,6 +10,7 @@ on:
         options:
           - all
           - 60-database
+          - 56-vpc-lattice
           - 55-argocd
           - 50-addons
           - 45-ecr
@@ -78,6 +79,13 @@ jobs:
           echo ">>> Destroying 60-database..."
           terragrunt run init || true
           terragrunt run -- destroy -auto-approve || echo "60-database not found or already destroyed"
+
+      - name: Destroy 56-vpc-lattice
+        working-directory: environments/${{ inputs.environment }}/56-vpc-lattice
+        run: |
+          echo ">>> Destroying 56-vpc-lattice..."
+          terragrunt run init || true
+          terragrunt run -- destroy -auto-approve || echo "56-vpc-lattice not found or already destroyed"
 
       - name: Destroy 55-argocd
         working-directory: environments/${{ inputs.environment }}/55-argocd
@@ -153,7 +161,7 @@ jobs:
         run: |
           echo "## Terragrunt Destroy All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers destroyed:** 60-database → 55-argocd → 50-addons → 45-ecr → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers destroyed:** 60-database → 56-vpc-lattice → 55-argocd → 50-addons → 45-ecr → 40-fargate → 30-eks-cluster → 20-security → 10-networking → 05-cloudwatch → 04-iam → 00-foundation" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   destroy-single:
