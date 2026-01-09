@@ -56,10 +56,12 @@ resource "helm_release" "argocd" {
 
         # Ingress 설정 (선택적)
         ingress = {
-          enabled = var.ingress_enabled
+          enabled          = var.ingress_enabled
           ingressClassName = var.ingress_class_name
-          hosts   = var.ingress_hosts
-          tls     = var.ingress_tls
+          # hosts가 비어있으면 생략하여 모든 호스트 허용 (*), 값이 있으면 해당 호스트만 허용
+          hosts       = length(var.ingress_hosts) > 0 && var.ingress_hosts[0] != "" ? var.ingress_hosts : null
+          hostname    = length(var.ingress_hosts) > 0 && var.ingress_hosts[0] != "" ? var.ingress_hosts[0] : ""
+          tls         = var.ingress_tls
           annotations = var.ingress_annotations
         }
 
