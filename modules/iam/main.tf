@@ -426,7 +426,15 @@ resource "aws_iam_role_policy" "github_actions_custom" {
           "logs:TagResource",
           "logs:PutRetentionPolicy",
           "logs:CreateLogGroup",
-          "logs:ListTagsForResource"
+          "logs:ListTagsForResource",
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DeleteResourcePolicy"
         ]
         Resource = "*"
       },
