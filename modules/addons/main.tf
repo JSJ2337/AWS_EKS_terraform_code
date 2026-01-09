@@ -198,7 +198,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   values = [
     yamlencode({
       clusterName = var.cluster_name
-      region      = data.aws_region.current.name
+      region      = data.aws_region.current.id
       vpcId       = var.vpc_id
 
       serviceAccount = {
