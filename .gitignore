@@ -2,6 +2,9 @@
 CLAUDE.md
 .claude/
 
+# 작업 이력 (로컬 전용)
+docs/work_history/
+
 # Terraform
 *.tfstate
 *.tfstate.*
