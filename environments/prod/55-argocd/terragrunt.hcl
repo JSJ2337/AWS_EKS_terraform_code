@@ -118,6 +118,7 @@ inputs = {
   # Ingress (ALB)
   ingress_enabled     = local.common.locals.argocd.ingress_enabled
   ingress_class_name  = local.common.locals.argocd.ingress_class_name
+  ingress_hosts       = local.common.locals.argocd.ingress_hosts
   ingress_annotations = local.common.locals.argocd.ingress_annotations
 
   # Tags

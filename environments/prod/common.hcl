@@ -210,6 +210,7 @@ locals {
     # Ingress (ALB 사용)
     ingress_enabled    = true
     ingress_class_name = "alb"
+    ingress_hosts      = [""]  # Host 조건 없이 ALB URL로 직접 접속 허용
     ingress_annotations = {
       "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
       "alb.ingress.kubernetes.io/target-type" = "ip"
