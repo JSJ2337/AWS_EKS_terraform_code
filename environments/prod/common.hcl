@@ -203,12 +203,21 @@ locals {
     notifications_enabled  = false  # 알림 (Slack 등)
     dex_enabled            = false  # SSO
 
-    # Server 설정
-    server_service_type = "LoadBalancer"  # ClusterIP, LoadBalancer, NodePort
-    server_insecure     = true            # TLS termination at LB
+    # Server 설정 - ALB Ingress 사용 시 ClusterIP로 변경
+    server_service_type = "ClusterIP"
+    server_insecure     = true  # TLS termination at ALB
 
-    # Ingress (ALB 사용 시)
-    ingress_enabled = false
+    # Ingress (ALB 사용)
+    ingress_enabled    = true
+    ingress_class_name = "alb"
+    ingress_annotations = {
+      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type" = "ip"
+      "alb.ingress.kubernetes.io/listen-ports" = "[{\"HTTP\": 80}]"
+      "alb.ingress.kubernetes.io/healthcheck-path" = "/healthz"
+      "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
+      "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
+    }
   }
 
   ############################################################################

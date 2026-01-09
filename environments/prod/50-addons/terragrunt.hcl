@@ -3,7 +3,9 @@
 ################################################################################
 
 include "root" {
-  path = find_in_parent_folders("root.hcl")
+  path           = find_in_parent_folders("root.hcl")
+  merge_strategy = "deep"
+  expose         = true
 }
 
 locals {
@@ -12,6 +14,76 @@ locals {
 
 terraform {
   source = "${get_terragrunt_dir()}/../../../modules/addons"
+}
+
+# Helm Provider 추가 (AWS Load Balancer Controller 설치용)
+generate "provider" {
+  path      = "provider.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.82"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "${local.common.locals.region}"
+
+  default_tags {
+    tags = {
+      Project     = "${local.common.locals.project}"
+      Environment = "${local.common.locals.environment}"
+      ManagedBy   = "terragrunt"
+    }
+  }
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = "${dependency.eks_cluster.outputs.cluster_name}"
+}
+
+provider "kubernetes" {
+  host                   = "${dependency.eks_cluster.outputs.cluster_endpoint}"
+  cluster_ca_certificate = base64decode("${dependency.eks_cluster.outputs.cluster_certificate_authority_data}")
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = "${dependency.eks_cluster.outputs.cluster_endpoint}"
+    cluster_ca_certificate = base64decode("${dependency.eks_cluster.outputs.cluster_certificate_authority_data}")
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+
+  # 로컬 Helm 설정 파일 사용하지 않음 (OCI repository 직접 사용)
+  repository_config_path = "/dev/null"
+  repository_cache       = "/tmp/helm-cache"
+}
+EOF
+}
+
+dependency "networking" {
+  config_path = "../10-networking"
+
+  mock_outputs = {
+    vpc_id = "vpc-mock12345"
+  }
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
 dependency "eks_cluster" {
@@ -45,6 +117,9 @@ inputs = {
   cluster_name      = dependency.eks_cluster.outputs.cluster_name
   oidc_provider_arn = dependency.eks_cluster.outputs.oidc_provider_arn
   oidc_provider_id  = dependency.eks_cluster.outputs.oidc_provider_id
+
+  # VPC ID for AWS Load Balancer Controller
+  vpc_id = dependency.networking.outputs.vpc_id
 
   # Fargate 전용 설정
   use_fargate = true

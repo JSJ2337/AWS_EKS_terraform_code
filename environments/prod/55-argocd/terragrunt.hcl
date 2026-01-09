@@ -45,6 +45,18 @@ dependency "fargate" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
+# AWS Load Balancer Controller 의존성 (ALB Ingress 사용)
+dependency "addons" {
+  config_path  = "../50-addons"
+  skip_outputs = true
+
+  mock_outputs = {
+    aws_lb_controller_role_arn = "arn:aws:iam::123456789012:role/mock-lb-controller-role"
+  }
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
+}
+
 # root.hcl의 provider.tf를 오버라이드하여 AWS + Helm + Kubernetes 통합
 generate "provider" {
   path      = "provider.tf"
@@ -122,8 +134,10 @@ inputs = {
   server_service_type = local.common.locals.argocd.server_service_type
   server_insecure     = local.common.locals.argocd.server_insecure
 
-  # Ingress (optional)
-  ingress_enabled = local.common.locals.argocd.ingress_enabled
+  # Ingress (ALB)
+  ingress_enabled     = local.common.locals.argocd.ingress_enabled
+  ingress_class_name  = local.common.locals.argocd.ingress_class_name
+  ingress_annotations = local.common.locals.argocd.ingress_annotations
 
   # Tags
   tags = local.common.locals.common_tags

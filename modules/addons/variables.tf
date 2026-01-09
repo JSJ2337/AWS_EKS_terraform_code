@@ -88,6 +88,18 @@ variable "enable_aws_lb_controller" {
   default     = true
 }
 
+variable "aws_lb_controller_version" {
+  description = "AWS Load Balancer Controller Helm chart version"
+  type        = string
+  default     = "1.11.0"
+}
+
+variable "vpc_id" {
+  description = "VPC ID for AWS Load Balancer Controller"
+  type        = string
+  default     = ""
+}
+
 variable "use_fargate" {
   description = "Whether using Fargate for compute (affects CoreDNS configuration)"
   type        = bool

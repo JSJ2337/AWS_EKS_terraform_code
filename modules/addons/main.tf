@@ -179,3 +179,60 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
   role       = aws_iam_role.aws_load_balancer_controller[0].name
 }
 
+################################################################################
+# AWS Load Balancer Controller Helm Release
+################################################################################
+
+resource "helm_release" "aws_load_balancer_controller" {
+  count = var.enable_aws_lb_controller ? 1 : 0
+
+  name       = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  version    = var.aws_lb_controller_version
+
+  wait    = true
+  timeout = 600
+
+  values = [
+    yamlencode({
+      clusterName = var.cluster_name
+      region      = data.aws_region.current.name
+      vpcId       = var.vpc_id
+
+      serviceAccount = {
+        create = true
+        name   = "aws-load-balancer-controller"
+        annotations = {
+          "eks.amazonaws.com/role-arn" = aws_iam_role.aws_load_balancer_controller[0].arn
+        }
+      }
+
+      # Fargate에서는 replicas 1로 설정 (리소스 절약)
+      replicaCount = var.use_fargate ? 1 : 2
+
+      # IngressClass 생성
+      createIngressClassResource = true
+      ingressClass               = "alb"
+
+      # 리소스 제한 (Fargate에서 중요)
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "200m"
+          memory = "256Mi"
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    aws_iam_role_policy_attachment.aws_load_balancer_controller,
+    aws_eks_addon.vpc_cni
+  ]
+}
+
