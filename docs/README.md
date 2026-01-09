@@ -13,10 +13,36 @@ AWS EKS 인프라를 Terraform/Terragrunt로 관리하는 프로젝트입니다.
 | VPC | jsj-eks-vpc (10.0.0.0/16) | Active |
 | Subnets | 8개 (public/private/database/pod) | Active |
 | EKS Cluster | jsj-eks-cluster (v1.31) | Active |
-| Fargate Profiles | system, application, monitoring | Active |
+| Fargate Profiles | system, application | Active |
 | Aurora MySQL | jsj-eks-aurora-mysql (Writer + Reader) | Available |
 | S3 State | jsj-eks-terraform-state | Active |
 | DynamoDB Lock | jsj-eks-terraform-lock | Active |
+
+### EKS Add-ons
+
+| 애드온 | 버전 | 상태 |
+| ------ | ---- | ---- |
+| vpc-cni | v1.19.2 | Active |
+| coredns | v1.11.4 | Active |
+| kube-proxy | v1.31.3 | Active |
+| eks-pod-identity-agent | v1.3.5 | Active |
+
+### AWS Load Balancer Controller
+
+| 항목 | 값 |
+| ---- | -- |
+| 버전 | v2.7.0+ |
+| 네임스페이스 | kube-system |
+| 상태 | Running |
+
+### ArgoCD
+
+| 항목 | 값 |
+| ---- | -- |
+| URL | ALB URL (kubectl get ingress -n argocd 로 확인) |
+| 계정 | admin |
+| 비밀번호 | `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" \| base64 -d` |
+| Ingress | ALB (Host: *) |
 
 ## 사전 요구사항
 

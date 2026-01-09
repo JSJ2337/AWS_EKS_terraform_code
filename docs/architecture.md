@@ -269,6 +269,72 @@ flowchart TB
 | kube-proxy | Active | DaemonSet |
 | eks-pod-identity-agent | Active | IRSA 대체 |
 
+### AWS Load Balancer Controller
+
+AWS Load Balancer Controller는 Kubernetes Ingress/Service를 AWS ALB/NLB로 프로비저닝합니다.
+
+```mermaid
+flowchart LR
+    subgraph EKS["EKS Cluster"]
+        LBC[AWS LB Controller]
+        Ingress[Ingress Resource]
+        SVC[Service]
+        Pod[Pods]
+    end
+
+    subgraph AWS["AWS"]
+        ALB[Application LB]
+        TG[Target Group]
+    end
+
+    LBC -->|Watch| Ingress
+    LBC -->|Create| ALB
+    LBC -->|Register| TG
+    ALB --> TG
+    TG --> Pod
+```
+
+| 항목 | 설정 |
+| ---- | ---- |
+| 설치 방식 | Helm (Terraform 관리) |
+| IAM 연동 | IRSA (OIDC) |
+| Ingress Class | alb |
+| Target Type | ip (Fargate 필수) |
+
+### ArgoCD (GitOps)
+
+ArgoCD는 GitOps 방식으로 Kubernetes 애플리케이션을 배포합니다.
+
+```mermaid
+flowchart TB
+    subgraph Git["Git Repository"]
+        Manifests[K8s Manifests]
+    end
+
+    subgraph EKS["EKS Cluster"]
+        ArgoCD[ArgoCD Server]
+        App[Application CRD]
+        Deploy[Deployments]
+    end
+
+    subgraph AWS["AWS"]
+        ALB[ALB Ingress]
+    end
+
+    User((User)) --> ALB
+    ALB --> ArgoCD
+    ArgoCD -->|Watch| Manifests
+    ArgoCD -->|Sync| App
+    App --> Deploy
+```
+
+| 항목 | 설정 |
+| ---- | ---- |
+| 네임스페이스 | argocd |
+| 설치 방식 | Helm (Terraform 관리) |
+| 외부 접속 | ALB Ingress (Host: *) |
+| Ingress 관리 | Terraform kubernetes_ingress_v1 |
+
 ## State 관리
 
 ```mermaid

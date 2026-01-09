@@ -128,6 +128,8 @@ module "argocd" {
 | `server_service_name` | Server 서비스 이름 |
 | `server_service_port` | Server 서비스 포트 |
 | `server_url` | Server 내부 URL |
+| `ingress_enabled` | Ingress 활성화 여부 |
+| `ingress_name` | Ingress 리소스 이름 |
 
 ## 리소스 기본값
 
@@ -207,7 +209,27 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ## Ingress 설정 예시
 
-### AWS ALB
+### AWS ALB (Host 없이 직접 접속)
+
+이 모듈은 Helm 차트의 Ingress 대신 Terraform `kubernetes_ingress_v1`로 직접 Ingress를 생성합니다.
+이를 통해 Host 조건 없이 ALB URL로 직접 접속할 수 있습니다.
+
+```hcl
+ingress_enabled    = true
+ingress_class_name = "alb"
+ingress_hosts      = [""]  # 빈 값 = 모든 호스트 허용 (HOSTS: *)
+
+ingress_annotations = {
+  "alb.ingress.kubernetes.io/scheme"             = "internet-facing"
+  "alb.ingress.kubernetes.io/target-type"        = "ip"
+  "alb.ingress.kubernetes.io/listen-ports"       = "[{\"HTTP\": 80}]"
+  "alb.ingress.kubernetes.io/healthcheck-path"   = "/healthz"
+  "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
+  "alb.ingress.kubernetes.io/backend-protocol"   = "HTTP"
+}
+```
+
+### AWS ALB (특정 도메인 사용)
 
 ```hcl
 ingress_enabled    = true
@@ -215,10 +237,51 @@ ingress_class_name = "alb"
 ingress_hosts      = ["argocd.example.com"]
 
 ingress_annotations = {
-  "alb.ingress.kubernetes.io/scheme"          = "internet-facing"
-  "alb.ingress.kubernetes.io/target-type"     = "ip"
-  "alb.ingress.kubernetes.io/backend-protocol" = "HTTPS"
-  "alb.ingress.kubernetes.io/healthcheck-path" = "/healthz"
+  "alb.ingress.kubernetes.io/scheme"           = "internet-facing"
+  "alb.ingress.kubernetes.io/target-type"      = "ip"
+  "alb.ingress.kubernetes.io/certificate-arn"  = "arn:aws:acm:..."
+  "alb.ingress.kubernetes.io/listen-ports"     = "[{\"HTTPS\": 443}]"
+  "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
+}
+```
+
+### Ingress 구현 상세
+
+ArgoCD Helm 차트의 Ingress는 `hosts`가 비어있으면 기본값 `argocd.example.com`을 강제 설정하는 문제가 있습니다.
+이를 해결하기 위해 Helm Ingress를 비활성화하고 Terraform으로 직접 Ingress를 생성합니다.
+
+```hcl
+# modules/argocd/main.tf
+resource "kubernetes_ingress_v1" "argocd_server" {
+  count = var.ingress_enabled ? 1 : 0
+
+  metadata {
+    name        = "${var.release_name}-server"
+    namespace   = var.namespace
+    annotations = var.ingress_annotations
+  }
+
+  spec {
+    ingress_class_name = var.ingress_class_name
+
+    # Host 조건 없이 path만 설정 - HOSTS: *
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "${var.release_name}-server"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 ```
 

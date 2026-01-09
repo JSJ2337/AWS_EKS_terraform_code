@@ -121,8 +121,34 @@ configuration_values = var.use_fargate ? jsonencode({
 ### AWS Load Balancer Controller
 
 - ALB/NLB 생성 및 관리
-- IRSA Role만 생성 (실제 설치는 Helm으로 별도 수행)
+- IRSA Role 생성 및 Helm 배포 (일체형)
 - 정책 파일: `policies/aws-load-balancer-controller-policy.json`
+- Fargate 환경에서는 `target-type: ip` 필수
+
+```hcl
+# Helm 배포 설정
+helm_release "aws_lb_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+}
+```
+
+#### 필수 IAM 권한
+
+```json
+{
+  "Action": [
+    "elasticloadbalancing:DescribeListenerAttributes",
+    "elasticloadbalancing:DescribeLoadBalancers",
+    "elasticloadbalancing:DescribeTargetGroups",
+    ...
+  ]
+}
+```
+
+> **주의**: AWS LB Controller v2.7+ 버전에서는 `DescribeListenerAttributes` 권한이 필수입니다.
 
 ## Fargate 권장 설정
 

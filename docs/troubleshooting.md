@@ -241,19 +241,159 @@ kubectl get --raw /healthz
 
 이 섹션은 프로젝트에서 발견된 이슈와 해결 방법을 기록합니다.
 
-<!-- 새로운 이슈 발견 시 아래 형식으로 추가:
+### Terragrunt Fargate Dependency Warning
 
-### 이슈 제목
-
-**발견일:** YYYY-MM-DD
-**상태:** 해결됨 / 미해결
+**발견일:** 2025-01-09
+**상태:** 해결됨
 
 **증상:**
-설명
+
+```text
+WARN Config ../40-fargate/terragrunt.hcl is a dependency of ./terragrunt.hcl that has no outputs
+```
 
 **원인:**
-설명
+`dependency` 블록에 `skip_outputs = true` 사용 시 경고 발생
 
 **해결:**
-설명
--->
+outputs을 사용하지 않는 경우 `dependencies` 블록으로 변경
+
+```hcl
+# 변경 전 (경고 발생)
+dependency "fargate" {
+  config_path  = "../40-fargate"
+  skip_outputs = true
+}
+
+# 변경 후 (경고 없음)
+dependencies {
+  paths = ["../40-fargate"]
+}
+```
+
+---
+
+### AWS LB Controller DescribeListenerAttributes 권한 오류
+
+**발견일:** 2025-01-09
+**상태:** 해결됨
+
+**증상:**
+
+```text
+elasticloadbalancing:DescribeListenerAttributes action not authorized
+```
+
+**원인:**
+AWS LB Controller v2.7+ 버전에서 새로 요구되는 IAM 권한 누락
+
+**해결:**
+IAM 정책에 `elasticloadbalancing:DescribeListenerAttributes` 권한 추가
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "elasticloadbalancing:DescribeListenerAttributes"
+  ],
+  "Resource": "*"
+}
+```
+
+---
+
+### AWS Region Deprecated Warning
+
+**발견일:** 2025-01-09
+**상태:** 해결됨
+
+**증상:**
+
+```text
+Warning: The attribute "name" is deprecated
+```
+
+**원인:**
+AWS Provider 5.x에서 `data.aws_region.current.name` 속성 deprecated
+
+**해결:**
+`name` → `id`로 변경
+
+```hcl
+# 변경 전 (deprecated)
+region = data.aws_region.current.name
+
+# 변경 후
+region = data.aws_region.current.id
+```
+
+---
+
+### ArgoCD Helm Ingress Host 기본값 문제
+
+**발견일:** 2025-01-09
+**상태:** 해결됨
+
+**증상:**
+ALB URL로 직접 접속 시 404 Not Found (Host 헤더 필요)
+
+**원인:**
+ArgoCD Helm 차트가 `hosts: []` 또는 `hostname: ""`를 무시하고 기본값 `argocd.example.com` 강제 설정
+
+**해결:**
+Helm Ingress 비활성화 후 Terraform `kubernetes_ingress_v1`로 직접 생성
+
+```hcl
+# modules/argocd/main.tf
+resource "kubernetes_ingress_v1" "argocd_server" {
+  count = var.ingress_enabled ? 1 : 0
+
+  spec {
+    ingress_class_name = var.ingress_class_name
+
+    # Host 조건 없이 path만 설정
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "${var.release_name}-server"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+### Helm Release 충돌 (Name Already in Use)
+
+**발견일:** 2025-01-09
+**상태:** 해결됨
+
+**증상:**
+
+```text
+Error: cannot re-use a name that is still in use
+```
+
+**원인:**
+이전 Helm 릴리스가 완전히 삭제되지 않음
+
+**해결:**
+
+```bash
+# Helm 릴리스 강제 삭제
+helm uninstall <release-name> -n <namespace>
+
+# 또는 Secret 직접 삭제
+kubectl delete secret sh.helm.release.v1.<release-name>.v1 -n <namespace>
+```
