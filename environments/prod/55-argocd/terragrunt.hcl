@@ -32,29 +32,10 @@ dependency "eks_cluster" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-# Fargate Profile 의존성 (Fargate가 있어야 ArgoCD 배포 가능)
-dependency "fargate" {
-  config_path  = "../40-fargate"
-  skip_outputs = true
-
-  mock_outputs = {
-    system_fargate_profile_id      = "mock-system-profile"
-    application_fargate_profile_id = "mock-app-profile"
-  }
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
-}
-
-# AWS Load Balancer Controller 의존성 (ALB Ingress 사용)
-dependency "addons" {
-  config_path  = "../50-addons"
-  skip_outputs = true
-
-  mock_outputs = {
-    aws_lb_controller_role_arn = "arn:aws:iam::123456789012:role/mock-lb-controller-role"
-  }
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
+# Fargate Profile 및 AWS Load Balancer Controller 의존성
+# outputs을 사용하지 않으므로 dependencies 블록으로 순서만 보장
+dependencies {
+  paths = ["../40-fargate", "../50-addons"]
 }
 
 # root.hcl의 provider.tf를 오버라이드하여 AWS + Helm + Kubernetes 통합
