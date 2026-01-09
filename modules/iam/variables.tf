@@ -74,6 +74,34 @@ variable "create_fargate_pod_execution_role" {
 }
 
 ################################################################################
+# GitHub Actions Role
+################################################################################
+
+variable "create_github_actions_role" {
+  description = "Whether to create GitHub Actions role"
+  type        = bool
+  default     = true
+}
+
+variable "github_actions_role_name" {
+  description = "Name of the GitHub Actions IAM role"
+  type        = string
+  default     = "github-actions-eks"
+}
+
+variable "github_repositories" {
+  description = "List of GitHub repositories allowed to assume the role (format: owner/repo)"
+  type        = list(string)
+  default     = []
+}
+
+variable "github_actions_session_duration" {
+  description = "Maximum session duration for GitHub Actions role (seconds)"
+  type        = number
+  default     = 3600
+}
+
+################################################################################
 # Common
 ################################################################################
 

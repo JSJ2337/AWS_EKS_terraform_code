@@ -15,6 +15,61 @@ terraform {
   source = "${get_terragrunt_dir()}/../../../modules/iam"
 }
 
+# Import existing GitHub Actions IAM resources
+generate "imports" {
+  path      = "imports.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+# Import GitHub Actions Role
+import {
+  to = aws_iam_role.github_actions[0]
+  id = "${local.common.locals.github_actions.role_name}"
+}
+
+# Import attached managed policies
+import {
+  to = aws_iam_role_policy_attachment.github_actions_ec2[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_iam[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/IAMFullAccess"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_eks_cluster[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_vpc[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonVPCFullAccess"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_dynamodb[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_eks_worker[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.github_actions_s3[0]
+  id = "${local.common.locals.github_actions.role_name}/arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+# Import inline policy (기존 정책명: git_hub_action_custom_role)
+import {
+  to = aws_iam_role_policy.github_actions_custom[0]
+  id = "${local.common.locals.github_actions.role_name}:git_hub_action_custom_role"
+}
+EOF
+}
+
 dependency "foundation" {
   config_path = "../00-foundation"
 
@@ -45,6 +100,12 @@ inputs = {
   # 서비스 역할 생성
   create_flow_logs_role      = true
   create_rds_monitoring_role = true
+
+  # GitHub Actions 역할 생성
+  create_github_actions_role      = local.common.locals.github_actions.create_role
+  github_actions_role_name        = local.common.locals.github_actions.role_name
+  github_repositories             = local.common.locals.github_actions.repositories
+  github_actions_session_duration = local.common.locals.github_actions.session_duration
 
   # Common tags
   tags = local.common.locals.common_tags

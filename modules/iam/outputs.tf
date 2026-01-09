@@ -71,3 +71,17 @@ output "fargate_pod_execution_role_name" {
   description = "Name of Fargate pod execution role"
   value       = var.create_fargate_pod_execution_role ? aws_iam_role.fargate_pod_execution[0].name : null
 }
+
+################################################################################
+# GitHub Actions Role
+################################################################################
+
+output "github_actions_role_arn" {
+  description = "ARN of GitHub Actions role"
+  value       = var.create_github_actions_role ? aws_iam_role.github_actions[0].arn : null
+}
+
+output "github_actions_role_name" {
+  description = "Name of GitHub Actions role"
+  value       = var.create_github_actions_role ? aws_iam_role.github_actions[0].name : null
+}
