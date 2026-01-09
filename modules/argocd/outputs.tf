@@ -36,3 +36,13 @@ output "server_url" {
   description = "ArgoCD server URL (internal)"
   value       = "https://${var.release_name}-server.${var.namespace}.svc.cluster.local"
 }
+
+output "ingress_enabled" {
+  description = "Whether Ingress is enabled"
+  value       = var.ingress_enabled
+}
+
+output "ingress_name" {
+  description = "ArgoCD Ingress name"
+  value       = var.ingress_enabled ? kubernetes_ingress_v1.argocd_server[0].metadata[0].name : null
+}

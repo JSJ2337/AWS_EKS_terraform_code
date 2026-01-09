@@ -54,15 +54,9 @@ resource "helm_release" "argocd" {
           type = var.server_service_type
         }
 
-        # Ingress 설정 (선택적)
+        # Helm Ingress 비활성화 - Terraform에서 직접 생성
         ingress = {
-          enabled          = var.ingress_enabled
-          ingressClassName = var.ingress_class_name
-          # hosts가 비어있으면 생략하여 모든 호스트 허용 (*), 값이 있으면 해당 호스트만 허용
-          hosts       = length(var.ingress_hosts) > 0 && var.ingress_hosts[0] != "" ? var.ingress_hosts : null
-          hostname    = length(var.ingress_hosts) > 0 && var.ingress_hosts[0] != "" ? var.ingress_hosts[0] : ""
-          tls         = var.ingress_tls
-          annotations = var.ingress_annotations
+          enabled = false
         }
 
         # 리소스 제한
@@ -133,4 +127,52 @@ resource "helm_release" "argocd" {
   ]
 
   depends_on = [kubernetes_namespace_v1.argocd]
+}
+
+################################################################################
+# ArgoCD Server Ingress (Terraform 관리)
+# Helm 차트의 Ingress는 host 기본값 문제로 비활성화하고 직접 생성
+################################################################################
+
+resource "kubernetes_ingress_v1" "argocd_server" {
+  count = var.ingress_enabled ? 1 : 0
+
+  metadata {
+    name      = "${var.release_name}-server"
+    namespace = var.namespace
+    annotations = var.ingress_annotations
+  }
+
+  spec {
+    ingress_class_name = var.ingress_class_name
+
+    # Host 조건 없이 path만 설정 - 모든 호스트에서 접근 가능
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "${var.release_name}-server"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+
+    # TLS 설정 (선택적)
+    dynamic "tls" {
+      for_each = var.ingress_tls
+      content {
+        secret_name = tls.value.secretName
+        hosts       = tls.value.hosts
+      }
+    }
+  }
+
+  depends_on = [helm_release.argocd]
 }
