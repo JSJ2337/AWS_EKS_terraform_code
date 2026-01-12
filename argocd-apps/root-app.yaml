@@ -1,0 +1,30 @@
+################################################################################
+# ArgoCD Root Application (App of Apps)
+# 이 Application이 argocd-apps/ 폴더를 감시하고
+# 새로운 Application YAML이 추가되면 자동으로 ArgoCD에 등록
+################################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/JSJ2337/AWS_EKS_terraform_code.git
+    targetRevision: main
+    path: argocd-apps           # 이 폴더의 모든 Application YAML을 감시
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd           # Application CRD는 argocd namespace에 생성
+
+  # 프로덕션: 수동 Sync (권장)
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
