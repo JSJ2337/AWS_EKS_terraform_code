@@ -294,28 +294,6 @@ locals {
   }
 
   ############################################################################
-  # Bootstrap IAM Role ARN (bootstrap/01-iam에서 생성됨)
-  # environments 레이어에서 참조할 때 사용
-  ############################################################################
-
-  bootstrap_iam = {
-    # VPC Flow Logs Role ARN
-    flow_logs_role_arn = "arn:aws:iam::222634401110:role/${local.project}-vpc-flow-logs-${local.environment}"
-
-    # EKS Cluster Role ARN
-    eks_cluster_role_arn = "arn:aws:iam::222634401110:role/${local.project}-eks-cluster-role-${local.environment}"
-
-    # EKS Admin Role ARN
-    eks_admin_role_arn = "arn:aws:iam::222634401110:role/${local.project}-eks-admin-${local.environment}"
-
-    # RDS Monitoring Role ARN
-    rds_monitoring_role_arn = "arn:aws:iam::222634401110:role/${local.project}-rds-monitoring-${local.environment}"
-
-    # Fargate Pod Execution Role ARN
-    fargate_pod_execution_role_arn = "arn:aws:iam::222634401110:role/${local.project}-fargate-pod-execution-${local.environment}"
-  }
-
-  ############################################################################
   # 태그
   ############################################################################
 

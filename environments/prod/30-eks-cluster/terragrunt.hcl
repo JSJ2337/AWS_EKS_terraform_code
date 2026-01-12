@@ -69,7 +69,7 @@ dependency "cloudwatch" {
 inputs = {
   cluster_name              = local.common.locals.cluster_name
   cluster_version           = local.common.locals.cluster_version
-  cluster_role_arn          = local.common.locals.bootstrap_iam.eks_cluster_role_arn
+  cluster_role_arn          = local.bootstrap_iam.eks_cluster_role_arn
   subnet_ids                = dependency.networking.outputs.private_subnet_ids
   cluster_security_group_id = dependency.security.outputs.eks_cluster_security_group_id
   kms_key_arn               = dependency.foundation.outputs.kms_key_arn
