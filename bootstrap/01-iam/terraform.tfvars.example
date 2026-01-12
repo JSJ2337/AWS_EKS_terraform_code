@@ -1,0 +1,38 @@
+################################################################################
+# Bootstrap IAM - Example Configuration
+# 복사하여 terraform.tfvars로 사용
+################################################################################
+
+# AWS 리전
+region = "ap-northeast-2"
+
+# 프로젝트 설정
+project     = "jsj-eks"
+environment = "prod"
+
+# EKS 클러스터명 (Fargate Role 조건에 사용)
+cluster_name = "jsj-eks-cluster"
+
+# GitHub OIDC Provider (이미 존재하면 false)
+create_oidc_provider = false
+
+# GitHub Actions Role
+github_actions_role_name        = "jsj_github_action_EKS"
+github_repositories             = ["JSJ2337/AWS_EKS_terraform_code"]
+github_actions_session_duration = 3600
+
+# EKS Admin Role
+create_eks_admin_role   = true
+eks_admin_require_mfa   = true
+
+# EKS Cluster Role
+create_eks_cluster_role = true
+
+# VPC Flow Logs Role
+create_flow_logs_role = true
+
+# RDS Enhanced Monitoring Role
+create_rds_monitoring_role = true
+
+# Fargate Pod Execution Role
+create_fargate_pod_execution_role = true

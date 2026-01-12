@@ -1,30 +1,51 @@
 ################################################################################
-# IAM Module Variables
+# Bootstrap IAM Variables
 ################################################################################
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-2"
+}
 
 variable "project" {
   description = "Project name"
   type        = string
+  default     = "jsj-eks"
 }
 
 variable "environment" {
   description = "Environment name"
   type        = string
+  default     = "prod"
 }
 
 variable "cluster_name" {
   description = "EKS cluster name"
   type        = string
+  default     = "jsj-eks-cluster"
 }
 
 ################################################################################
-# GitHub OIDC Provider
+# GitHub Actions Role
 ################################################################################
 
-variable "create_oidc_provider" {
-  description = "Whether to create GitHub OIDC provider (set false if already exists)"
-  type        = bool
-  default     = false
+variable "github_actions_role_name" {
+  description = "Name of the GitHub Actions IAM role"
+  type        = string
+  default     = "jsj_github_action_EKS"
+}
+
+variable "github_repositories" {
+  description = "List of GitHub repositories allowed to assume the role (format: owner/repo)"
+  type        = list(string)
+  default     = ["JSJ2337/AWS_EKS_terraform_code"]
+}
+
+variable "github_actions_session_duration" {
+  description = "Maximum session duration for GitHub Actions role (seconds)"
+  type        = number
+  default     = 3600
 }
 
 ################################################################################
@@ -81,42 +102,4 @@ variable "create_fargate_pod_execution_role" {
   description = "Whether to create Fargate pod execution role"
   type        = bool
   default     = true
-}
-
-################################################################################
-# GitHub Actions Role
-################################################################################
-
-variable "create_github_actions_role" {
-  description = "Whether to create GitHub Actions role"
-  type        = bool
-  default     = true
-}
-
-variable "github_actions_role_name" {
-  description = "Name of the GitHub Actions IAM role"
-  type        = string
-  default     = "github-actions-eks"
-}
-
-variable "github_repositories" {
-  description = "List of GitHub repositories allowed to assume the role (format: owner/repo)"
-  type        = list(string)
-  default     = []
-}
-
-variable "github_actions_session_duration" {
-  description = "Maximum session duration for GitHub Actions role (seconds)"
-  type        = number
-  default     = 3600
-}
-
-################################################################################
-# Common
-################################################################################
-
-variable "tags" {
-  description = "Tags to apply to resources"
-  type        = map(string)
-  default     = {}
 }
