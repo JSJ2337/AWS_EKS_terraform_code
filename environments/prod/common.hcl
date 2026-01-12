@@ -63,9 +63,10 @@ locals {
     }
 
     # Application Profile (default, custom namespaces)
+    # 주의: Fargate Profile은 최대 5개 selector만 허용 (default 포함 시 4개 추가 가능)
     application_profile = {
       enabled    = true
-      namespaces = ["app", "staging", "demo-app", "petclinic", "fullstack-demo"]
+      namespaces = ["demo-app", "petclinic", "fullstack-demo", "app"]
     }
 
     # Monitoring Profile (prometheus, grafana, loki)
