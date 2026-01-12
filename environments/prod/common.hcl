@@ -62,11 +62,13 @@ locals {
       enabled = true
     }
 
-    # Application Profile (default, custom namespaces)
-    # 주의: Fargate Profile은 최대 5개 selector만 허용 (default 포함 시 4개 추가 가능)
+    # Application Profile (와일드카드 패턴 사용)
+    # AWS Best Practice: 와일드카드로 네임스페이스 그룹화
+    # app-* 패턴: app-demo, app-petclinic, app-fullstack, app-test 등 모두 매칭
     application_profile = {
-      enabled    = true
-      namespaces = ["demo-app", "petclinic", "fullstack-demo", "app"]
+      enabled                   = true
+      namespace_pattern         = "app-*"
+      include_default_namespace = false
     }
 
     # Monitoring Profile (prometheus, grafana, loki)

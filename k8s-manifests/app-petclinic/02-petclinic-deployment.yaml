@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql-client
-  namespace: petclinic
+  namespace: app-petclinic
   labels:
     app: mysql-client
     tier: backend
@@ -60,7 +60,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: web-app-config
-  namespace: petclinic
+  namespace: app-petclinic
 data:
   index.html: |
     <!DOCTYPE html>
@@ -136,7 +136,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web-app
-  namespace: petclinic
+  namespace: app-petclinic
   labels:
     app: web-app
     tier: backend
@@ -176,7 +176,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: petclinic-service
-  namespace: petclinic
+  namespace: app-petclinic
 spec:
   type: ClusterIP
   selector:

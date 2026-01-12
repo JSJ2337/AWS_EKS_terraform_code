@@ -1,11 +1,11 @@
 ################################################################################
-# ArgoCD Application - Fullstack Demo
-# 3-tier 아키텍처 전체 테스트 (Web + WAS + Aurora MySQL)
+# ArgoCD Application - PetClinic
+# 3-tier 아키텍처 테스트 애플리케이션 (Nginx + Spring Boot + Aurora MySQL)
 ################################################################################
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: fullstack-demo
+  name: app-petclinic
   namespace: argocd
   labels:
     app.kubernetes.io/managed-by: argocd
@@ -18,13 +18,13 @@ spec:
   source:
     repoURL: https://github.com/JSJ2337/AWS_EKS_terraform_code.git
     targetRevision: main
-    path: k8s-manifests/fullstack-demo
+    path: k8s-manifests/app-petclinic
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: fullstack-demo
+    namespace: app-petclinic
 
-  # 프로덕션: 수동 Sync
+  # 프로덕션: 수동 Sync (auto sync 비활성화)
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

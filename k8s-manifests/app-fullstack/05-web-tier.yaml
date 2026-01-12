@@ -7,7 +7,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-config
-  namespace: fullstack-demo
+  namespace: app-fullstack
 data:
   nginx.conf: |
     events {
@@ -327,7 +327,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-web
-  namespace: fullstack-demo
+  namespace: app-fullstack
   labels:
     app: nginx-web
     tier: web
@@ -383,7 +383,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nginx-web-service
-  namespace: fullstack-demo
+  namespace: app-fullstack
 spec:
   type: ClusterIP
   selector:
@@ -398,7 +398,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: fullstack-ingress
-  namespace: fullstack-demo
+  namespace: app-fullstack
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip

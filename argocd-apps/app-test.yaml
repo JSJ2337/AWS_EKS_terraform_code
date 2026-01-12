@@ -1,15 +1,15 @@
 ################################################################################
-# ArgoCD Application - Demo App
-# Nginx + Tomcat 데모 애플리케이션
+# ArgoCD Application - Test
+# 테스트 및 개발용 네임스페이스
 ################################################################################
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: demo-app
+  name: app-test
   namespace: argocd
   labels:
     app.kubernetes.io/managed-by: argocd
-    environment: prod
+    environment: test
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -18,13 +18,13 @@ spec:
   source:
     repoURL: https://github.com/JSJ2337/AWS_EKS_terraform_code.git
     targetRevision: main
-    path: k8s-manifests/demo-app
+    path: k8s-manifests/app-test
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: demo-app
+    namespace: app-test
 
-  # 프로덕션: 수동 Sync (auto sync 비활성화)
+  # 테스트: 수동 Sync
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

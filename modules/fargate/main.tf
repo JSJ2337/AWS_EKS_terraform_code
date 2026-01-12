@@ -38,7 +38,9 @@ resource "aws_eks_fargate_profile" "system" {
 }
 
 ################################################################################
-# Fargate Profile - Application (default, app namespaces)
+# Fargate Profile - Application (와일드카드 패턴 지원)
+# AWS Best Practice: 와일드카드를 사용하여 네임스페이스 그룹화
+# https://aws.amazon.com/about-aws/whats-new/2022/08/wildcard-support-amazon-eks-fargate-profile-selectors/
 ################################################################################
 
 resource "aws_eks_fargate_profile" "application" {
@@ -49,14 +51,16 @@ resource "aws_eks_fargate_profile" "application" {
   pod_execution_role_arn = var.pod_execution_role_arn
   subnet_ids             = var.subnet_ids
 
+  # 와일드카드 패턴: app-* (app-demo, app-petclinic, app-fullstack, app-test 등)
   selector {
-    namespace = "default"
+    namespace = var.application_namespace_pattern
   }
 
+  # default 네임스페이스 (선택적)
   dynamic "selector" {
-    for_each = var.application_namespaces
+    for_each = var.include_default_namespace ? [1] : []
     content {
-      namespace = selector.value
+      namespace = "default"
     }
   }
 

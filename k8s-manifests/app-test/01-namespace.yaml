@@ -1,11 +1,11 @@
 ################################################################################
-# Fullstack Demo Namespace
-# 3-tier 아키텍처 전체 테스트용 (Web + WAS + Aurora MySQL)
+# Test Namespace
+# 테스트 및 개발용 네임스페이스
 ################################################################################
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: fullstack-demo
+  name: app-test
   labels:
-    app.kubernetes.io/name: fullstack-demo
-    environment: prod
+    app.kubernetes.io/name: app-test
+    environment: test

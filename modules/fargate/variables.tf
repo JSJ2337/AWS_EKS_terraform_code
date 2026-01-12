@@ -40,13 +40,21 @@ variable "create_monitoring_profile" {
 }
 
 ################################################################################
-# Application Namespaces
+# Application Namespace Pattern (와일드카드 지원)
+# AWS Best Practice: 와일드카드를 사용하여 네임스페이스 그룹화
+# https://aws.amazon.com/about-aws/whats-new/2022/08/wildcard-support-amazon-eks-fargate-profile-selectors/
 ################################################################################
 
-variable "application_namespaces" {
-  description = "Additional namespaces for application Fargate profile"
-  type        = list(string)
-  default     = []
+variable "application_namespace_pattern" {
+  description = "Namespace pattern for application Fargate profile (supports wildcards: *, ?). Example: app-* matches app-demo, app-test, app-petclinic"
+  type        = string
+  default     = "app-*"
+}
+
+variable "include_default_namespace" {
+  description = "Whether to include default namespace in application profile"
+  type        = bool
+  default     = false
 }
 
 ################################################################################

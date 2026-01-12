@@ -8,7 +8,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql-client
-  namespace: fullstack-demo
+  namespace: app-fullstack
   labels:
     app: mysql-client
     tier: database
@@ -61,7 +61,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: db-init-script
-  namespace: fullstack-demo
+  namespace: app-fullstack
 data:
   init.sql: |
     -- 3-tier Demo Application Schema

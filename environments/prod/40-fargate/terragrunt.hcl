@@ -50,9 +50,10 @@ inputs = {
   # System Fargate Profile (kube-system, argocd)
   create_system_profile = local.common.locals.fargate.system_profile.enabled
 
-  # Application Fargate Profile (default, custom namespaces)
-  create_application_profile = local.common.locals.fargate.application_profile.enabled
-  application_namespaces     = local.common.locals.fargate.application_profile.namespaces
+  # Application Fargate Profile (와일드카드 패턴: app-*)
+  create_application_profile    = local.common.locals.fargate.application_profile.enabled
+  application_namespace_pattern = local.common.locals.fargate.application_profile.namespace_pattern
+  include_default_namespace     = local.common.locals.fargate.application_profile.include_default_namespace
 
   # Monitoring Fargate Profile (prometheus, grafana, loki)
   create_monitoring_profile = local.common.locals.fargate.monitoring_profile.enabled
