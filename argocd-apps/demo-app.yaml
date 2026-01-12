@@ -1,0 +1,31 @@
+################################################################################
+# ArgoCD Application - Demo App
+# Nginx + Tomcat 데모 애플리케이션
+################################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/JSJ2337/AWS_EKS_terraform_code.git
+    targetRevision: main
+    path: k8s-manifests/demo-app
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-app
+
+  # 프로덕션: 수동 Sync (auto sync 비활성화)
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

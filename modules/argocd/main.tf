@@ -209,3 +209,4 @@ resource "kubernetes_secret_v1" "git_repository" {
 
   depends_on = [helm_release.argocd]
 }
+
