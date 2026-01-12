@@ -33,6 +33,7 @@ spec:
             - -c
             - |
               pip install flask gunicorn pymysql
+              mkdir -p /app
               cat > /app/server.py << 'PYEOF'
               import os, socket
               from datetime import datetime
