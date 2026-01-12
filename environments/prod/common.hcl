@@ -271,6 +271,15 @@ locals {
       "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
       "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
     }
+
+    # Git Repository 연결 (AWS Secrets Manager 사용)
+    git_repository = {
+      enabled              = true
+      name                 = "aws-eks-terraform"
+      url                  = "https://github.com/JSJ2337/AWS_EKS_terraform_code.git"
+      username             = "JSJ2337"
+      pat_secret_id        = "argocd/github-pat"  # Secrets Manager Secret ID
+    }
   }
 
   ############################################################################

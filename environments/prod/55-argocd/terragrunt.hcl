@@ -121,6 +121,13 @@ inputs = {
   ingress_hosts       = local.common.locals.argocd.ingress_hosts
   ingress_annotations = local.common.locals.argocd.ingress_annotations
 
+  # Git Repository (AWS Secrets Manager 연동)
+  git_repository_enabled  = local.common.locals.argocd.git_repository.enabled
+  git_repository_name     = local.common.locals.argocd.git_repository.name
+  git_repository_url      = local.common.locals.argocd.git_repository.url
+  git_repository_username = local.common.locals.argocd.git_repository.username
+  github_pat_secret_id    = local.common.locals.argocd.git_repository.pat_secret_id
+
   # Tags
   tags = local.common.locals.common_tags
 }

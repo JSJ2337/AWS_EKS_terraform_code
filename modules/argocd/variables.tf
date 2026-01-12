@@ -266,3 +266,37 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+################################################################################
+# Git Repository Configuration (AWS Secrets Manager 연동)
+################################################################################
+
+variable "git_repository_enabled" {
+  description = "Enable Git repository connection"
+  type        = bool
+  default     = false
+}
+
+variable "git_repository_name" {
+  description = "Name identifier for the Git repository"
+  type        = string
+  default     = "github"
+}
+
+variable "git_repository_url" {
+  description = "Git repository URL (HTTPS)"
+  type        = string
+  default     = ""
+}
+
+variable "git_repository_username" {
+  description = "Git repository username"
+  type        = string
+  default     = ""
+}
+
+variable "github_pat_secret_id" {
+  description = "AWS Secrets Manager secret ID for GitHub PAT"
+  type        = string
+  default     = ""
+}

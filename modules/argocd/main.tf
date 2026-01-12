@@ -65,13 +65,13 @@ resource "helm_release" "argocd" {
 
       # Controller 설정
       controller = {
-        replicas = var.controller_replicas
+        replicas  = var.controller_replicas
         resources = var.controller_resources
       }
 
       # Repo Server 설정
       repoServer = {
-        replicas = var.repo_server_replicas
+        replicas  = var.repo_server_replicas
         resources = var.repo_server_resources
       }
 
@@ -138,8 +138,8 @@ resource "kubernetes_ingress_v1" "argocd_server" {
   count = var.ingress_enabled ? 1 : 0
 
   metadata {
-    name      = "${var.release_name}-server"
-    namespace = var.namespace
+    name        = "${var.release_name}-server"
+    namespace   = var.namespace
     annotations = var.ingress_annotations
   }
 
@@ -172,6 +172,39 @@ resource "kubernetes_ingress_v1" "argocd_server" {
         hosts       = tls.value.hosts
       }
     }
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+################################################################################
+# Git Repository Credentials (AWS Secrets Manager 연동)
+# ArgoCD에서 Private Git Repository 접근을 위한 인증 정보
+################################################################################
+
+# Secrets Manager에서 GitHub PAT 조회
+data "aws_secretsmanager_secret_version" "github_pat" {
+  count     = var.git_repository_enabled ? 1 : 0
+  secret_id = var.github_pat_secret_id
+}
+
+# ArgoCD Repository Secret
+resource "kubernetes_secret_v1" "git_repository" {
+  count = var.git_repository_enabled ? 1 : 0
+
+  metadata {
+    name      = "repo-${var.git_repository_name}"
+    namespace = var.namespace
+    labels = {
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+
+  data = {
+    type     = "git"
+    url      = var.git_repository_url
+    username = var.git_repository_username
+    password = data.aws_secretsmanager_secret_version.github_pat[0].secret_string
   }
 
   depends_on = [helm_release.argocd]
