@@ -1,0 +1,284 @@
+################################################################################
+# Fullstack 3-Tier Application
+# Web (Nginx) -> WAS (Flask) -> DB (Aurora MySQL)
+################################################################################
+
+# WAS Tier - Flask API Server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: app-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      containers:
+        - name: api
+          image: python:3.11-slim
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: aurora-credentials
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install flask gunicorn pymysql
+              cat > /app/server.py << 'PYEOF'
+              import os, socket
+              from datetime import datetime
+              from flask import Flask, jsonify
+              import pymysql
+
+              app = Flask(__name__)
+
+              DB_CONFIG = {
+                  'host': os.getenv('MYSQL_HOST'),
+                  'read_host': os.getenv('MYSQL_READ_HOST'),
+                  'port': int(os.getenv('MYSQL_PORT', 3306)),
+                  'user': os.getenv('MYSQL_USER'),
+                  'password': os.getenv('MYSQL_PASSWORD'),
+                  'database': os.getenv('MYSQL_DATABASE'),
+              }
+
+              def get_db_connection(use_reader=False):
+                  host = DB_CONFIG['read_host'] if use_reader else DB_CONFIG['host']
+                  return pymysql.connect(
+                      host=host, port=DB_CONFIG['port'],
+                      user=DB_CONFIG['user'], password=DB_CONFIG['password'],
+                      database=DB_CONFIG['database'], cursorclass=pymysql.cursors.DictCursor
+                  )
+
+              @app.route('/api/health')
+              def health():
+                  return jsonify({'status': 'healthy', 'hostname': socket.gethostname()})
+
+              @app.route('/api/info')
+              def info():
+                  return jsonify({
+                      'tier': 'WAS (Application)',
+                      'technology': 'Python Flask',
+                      'hostname': socket.gethostname(),
+                      'timestamp': datetime.now().isoformat(),
+                      'database': {
+                          'name': DB_CONFIG['database'],
+                          'writer': DB_CONFIG['host'],
+                          'reader': DB_CONFIG['read_host']
+                      }
+                  })
+
+              @app.route('/api/db-check')
+              def db_check():
+                  try:
+                      conn = get_db_connection()
+                      conn.close()
+                      return jsonify({'status': 'connected', 'host': DB_CONFIG['host'], 'database': DB_CONFIG['database']})
+                  except Exception as e:
+                      return jsonify({'status': 'error', 'message': str(e)})
+
+              @app.route('/api/products')
+              def get_products():
+                  try:
+                      conn = get_db_connection(use_reader=True)
+                      with conn.cursor() as cur:
+                          cur.execute('SELECT * FROM products')
+                          products = cur.fetchall()
+                      conn.close()
+                      return jsonify({'products': products, 'count': len(products)})
+                  except Exception as e:
+                      return jsonify({'error': str(e)})
+
+              @app.route('/api/users')
+              def get_users():
+                  try:
+                      conn = get_db_connection(use_reader=True)
+                      with conn.cursor() as cur:
+                          cur.execute('SELECT * FROM users')
+                          users = cur.fetchall()
+                      conn.close()
+                      return jsonify({'users': users, 'count': len(users)})
+                  except Exception as e:
+                      return jsonify({'error': str(e)})
+
+              if __name__ == '__main__':
+                  app.run(host='0.0.0.0', port=5000)
+              PYEOF
+              cd /app && gunicorn -b 0.0.0.0:5000 -w 2 server:app
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server-service
+  namespace: app-test
+spec:
+  selector:
+    app: api-server
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP
+
+# Web Tier - Nginx Reverse Proxy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: app-test
+data:
+  default.conf: |
+    upstream api_backend {
+        server api-server-service:5000;
+    }
+    server {
+        listen 80;
+        location /health { return 200 'healthy\n'; }
+        location /api/ {
+            proxy_pass http://api_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html><head><title>3-Tier Demo</title>
+    <style>
+      body{font-family:sans-serif;background:#1a1a2e;color:#fff;padding:20px}
+      h1{color:#ffd700}.card{background:#16213e;padding:20px;margin:10px 0;border-radius:8px}
+      .ok{color:#4caf50}.err{color:#f44336}button{background:#2196f3;color:#fff;border:none;padding:10px 20px;margin:5px;border-radius:5px;cursor:pointer}
+      pre{background:#0a0a1a;padding:15px;border-radius:5px;overflow-x:auto}
+    </style></head>
+    <body><h1>3-Tier Fullstack Demo</h1><p>AWS EKS + Aurora MySQL + ArgoCD</p>
+    <div class="card"><h3>System Status</h3>
+    <p>WAS: <span id="was" class="err">checking...</span></p>
+    <p>DB: <span id="db" class="err">checking...</span></p></div>
+    <div class="card"><h3>API Test</h3>
+    <button onclick="test('/api/info')">Info</button>
+    <button onclick="test('/api/db-check')">DB Check</button>
+    <button onclick="test('/api/products')">Products</button>
+    <button onclick="test('/api/users')">Users</button>
+    <pre id="out">Click a button...</pre></div>
+    <script>
+    async function check(){
+      try{let r=await fetch('/api/health');document.getElementById('was').className=r.ok?'ok':'err';document.getElementById('was').textContent=r.ok?'Running':'Error';}catch(e){document.getElementById('was').textContent='Error';}
+      try{let r=await fetch('/api/db-check');let d=await r.json();document.getElementById('db').className=d.status==='connected'?'ok':'err';document.getElementById('db').textContent=d.status==='connected'?'Connected':d.message;}catch(e){document.getElementById('db').textContent='Error';}
+    }
+    async function test(u){try{let r=await fetch(u);let d=await r.json();document.getElementById('out').textContent=JSON.stringify(d,null,2);}catch(e){document.getElementById('out').textContent='Error: '+e;}}
+    check();
+    </script></body></html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web
+  namespace: app-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-web
+  template:
+    metadata:
+      labels:
+        app: nginx-web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-web-service
+  namespace: app-test
+spec:
+  selector:
+    app: nginx-web
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+
+# MySQL Client for DB Testing
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-client
+  namespace: app-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-client
+  template:
+    metadata:
+      labels:
+        app: mysql-client
+    spec:
+      containers:
+        - name: mysql-client
+          image: mysql:8.0
+          command: ["sleep", "infinity"]
+          envFrom:
+            - secretRef:
+                name: aurora-credentials
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
