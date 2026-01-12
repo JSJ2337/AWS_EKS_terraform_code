@@ -93,7 +93,7 @@ data:
     </head>
     <body>
         <div class="container">
-            <h1>🚀 JSJ EKS Cluster</h1>
+            <h1>JSJ EKS Cluster</h1>
             <p>Nginx Web Server is Running!</p>
             <div class="info">
                 <p>Environment: Production</p>
@@ -104,18 +104,15 @@ data:
     </html>
 ---
 ################################################################################
-# Nginx Service - LoadBalancer
+# Nginx Service - ClusterIP (Ingress 사용)
 ################################################################################
 apiVersion: v1
 kind: Service
 metadata:
   name: nginx-web-service
   namespace: demo-app
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: nginx-web
   ports:
@@ -123,3 +120,29 @@ spec:
       port: 80
       targetPort: 80
       protocol: TCP
+---
+################################################################################
+# Nginx Ingress - ALB
+################################################################################
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-web-ingress
+  namespace: demo-app
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-web-service
+                port:
+                  number: 80
