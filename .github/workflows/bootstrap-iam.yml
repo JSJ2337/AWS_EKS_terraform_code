@@ -67,11 +67,11 @@ jobs:
           cat > backend.tf << 'EOF'
           terraform {
             backend "s3" {
-              bucket         = "${{ inputs.project }}-terraform-state"
+              bucket         = "${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
               key            = "bootstrap/01-iam/terraform.tfstate"
               region         = "${{ inputs.region }}"
               encrypt        = true
-              dynamodb_table = "${{ inputs.project }}-terraform-lock"
+              dynamodb_table = "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
             }
           }
           EOF
@@ -81,11 +81,11 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="bucket=${{ inputs.project }}-terraform-state" \
+            -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
             -backend-config="key=bootstrap/01-iam/terraform.tfstate" \
             -backend-config="region=${{ inputs.region }}" \
             -backend-config="encrypt=true" \
-            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock"
+            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
 
       - name: Terraform Plan
         id: plan
@@ -158,11 +158,11 @@ jobs:
           cat > backend.tf << 'EOF'
           terraform {
             backend "s3" {
-              bucket         = "${{ inputs.project }}-terraform-state"
+              bucket         = "${{ inputs.project }}-terraform-state-${{ inputs.environment }}"
               key            = "bootstrap/01-iam/terraform.tfstate"
               region         = "${{ inputs.region }}"
               encrypt        = true
-              dynamodb_table = "${{ inputs.project }}-terraform-lock"
+              dynamodb_table = "${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
             }
           }
           EOF
@@ -170,11 +170,11 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="bucket=${{ inputs.project }}-terraform-state" \
+            -backend-config="bucket=${{ inputs.project }}-terraform-state-${{ inputs.environment }}" \
             -backend-config="key=bootstrap/01-iam/terraform.tfstate" \
             -backend-config="region=${{ inputs.region }}" \
             -backend-config="encrypt=true" \
-            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock"
+            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock-${{ inputs.environment }}"
 
       - name: Terraform Plan (Verify)
         run: |
