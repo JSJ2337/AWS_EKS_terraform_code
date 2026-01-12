@@ -44,7 +44,7 @@ dependency "eks_cluster" {
 
 inputs = {
   cluster_name           = dependency.eks_cluster.outputs.cluster_name
-  pod_execution_role_arn = local.bootstrap_iam.fargate_pod_execution_role_arn
+  pod_execution_role_arn = local.common.locals.bootstrap_iam.fargate_pod_execution_role_arn
   subnet_ids             = dependency.networking.outputs.private_subnet_ids
 
   # System Fargate Profile (kube-system, argocd)
