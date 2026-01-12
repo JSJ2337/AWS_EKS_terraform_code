@@ -1,0 +1,211 @@
+name: Bootstrap IAM
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '실행할 작업'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - import-apply
+      region:
+        description: 'AWS Region'
+        required: true
+        default: 'ap-northeast-2'
+        type: string
+      project:
+        description: 'Project Name'
+        required: true
+        default: 'jsj-eks'
+        type: string
+      environment:
+        description: 'Environment Name'
+        required: true
+        default: 'prod'
+        type: string
+
+env:
+  TF_VERSION: '1.14.0'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # =============================================================================
+  # Plan Job
+  # =============================================================================
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bootstrap/01-iam
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Generate S3 backend config
+        run: |
+          cat > backend.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket         = "${{ inputs.project }}-terraform-state"
+              key            = "bootstrap/01-iam/terraform.tfstate"
+              region         = "${{ inputs.region }}"
+              encrypt        = true
+              dynamodb_table = "${{ inputs.project }}-terraform-lock"
+            }
+          }
+          EOF
+          echo "Generated S3 backend configuration:"
+          cat backend.tf
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ inputs.project }}-terraform-state" \
+            -backend-config="key=bootstrap/01-iam/terraform.tfstate" \
+            -backend-config="region=${{ inputs.region }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}" 2>&1 | tee plan_output.txt
+
+      - name: Plan Summary
+        run: |
+          echo "## Terraform Plan - Bootstrap IAM" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ inputs.region }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ inputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action:** ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Plan Output (last 50 lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 plan_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Approval Job
+  # =============================================================================
+  approval:
+    name: Waiting for Approval
+    runs-on: ubuntu-latest
+    needs: plan
+    if: ${{ inputs.action == 'apply' || inputs.action == 'import-apply' }}
+    environment: jsj_eks_prod
+    steps:
+      - name: Approval Granted
+        run: |
+          echo "Approval granted for ${{ inputs.action }} operation"
+          echo "Proceeding with ${{ inputs.action }}..."
+
+  # =============================================================================
+  # Apply Job (with Import)
+  # =============================================================================
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [plan, approval]
+    if: ${{ inputs.action == 'apply' || inputs.action == 'import-apply' }}
+    defaults:
+      run:
+        working-directory: bootstrap/01-iam
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Generate S3 backend config
+        run: |
+          cat > backend.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket         = "${{ inputs.project }}-terraform-state"
+              key            = "bootstrap/01-iam/terraform.tfstate"
+              region         = "${{ inputs.region }}"
+              encrypt        = true
+              dynamodb_table = "${{ inputs.project }}-terraform-lock"
+            }
+          }
+          EOF
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ inputs.project }}-terraform-state" \
+            -backend-config="key=bootstrap/01-iam/terraform.tfstate" \
+            -backend-config="region=${{ inputs.region }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="dynamodb_table=${{ inputs.project }}-terraform-lock"
+
+      - name: Terraform Plan (Verify)
+        run: |
+          echo "Running plan to verify changes before apply..."
+          terraform plan \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
+
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve \
+            -var="region=${{ inputs.region }}" \
+            -var="project=${{ inputs.project }}" \
+            -var="environment=${{ inputs.environment }}"
+
+      - name: Show Terraform State
+        run: |
+          echo "Current Terraform State:"
+          terraform state list || true
+
+      - name: Apply Summary
+        run: |
+          echo "## Terraform Apply Complete - Bootstrap IAM" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources Managed" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Actions IAM Role" >> $GITHUB_STEP_SUMMARY
+          echo "- EKS Admin Role" >> $GITHUB_STEP_SUMMARY
+          echo "- EKS Cluster Role" >> $GITHUB_STEP_SUMMARY
+          echo "- VPC Flow Logs Role" >> $GITHUB_STEP_SUMMARY
+          echo "- RDS Monitoring Role" >> $GITHUB_STEP_SUMMARY
+          echo "- Fargate Pod Execution Role" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
