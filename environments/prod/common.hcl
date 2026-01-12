@@ -65,7 +65,7 @@ locals {
     # Application Profile (default, custom namespaces)
     application_profile = {
       enabled    = true
-      namespaces = ["app", "staging", "demo-app", "petclinic"]
+      namespaces = ["app", "staging", "demo-app", "petclinic", "fullstack-demo"]
     }
 
     # Monitoring Profile (prometheus, grafana, loki)

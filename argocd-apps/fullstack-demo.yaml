@@ -1,0 +1,31 @@
+################################################################################
+# ArgoCD Application - Fullstack Demo
+# 3-tier 아키텍처 전체 테스트 (Web + WAS + Aurora MySQL)
+################################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fullstack-demo
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/JSJ2337/AWS_EKS_terraform_code.git
+    targetRevision: main
+    path: k8s-manifests/fullstack-demo
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fullstack-demo
+
+  # 프로덕션: 수동 Sync
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

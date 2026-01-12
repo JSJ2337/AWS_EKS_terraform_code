@@ -1,0 +1,112 @@
+################################################################################
+# Database Tier - MySQL Client & Init Job
+# Aurora MySQL 연결 테스트 및 스키마 초기화
+################################################################################
+---
+# DB 연결 테스트용 Pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-client
+  namespace: fullstack-demo
+  labels:
+    app: mysql-client
+    tier: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-client
+  template:
+    metadata:
+      labels:
+        app: mysql-client
+        tier: database
+    spec:
+      containers:
+        - name: mysql-client
+          image: mysql:8.0
+          command: ["sleep", "infinity"]
+          env:
+            - name: MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-credentials
+                  key: MYSQL_HOST
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-credentials
+                  key: MYSQL_USER
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-credentials
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-credentials
+                  key: MYSQL_DATABASE
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+# DB 스키마 초기화 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init-script
+  namespace: fullstack-demo
+data:
+  init.sql: |
+    -- 3-tier Demo Application Schema
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL UNIQUE,
+        email VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        stock INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL,
+        total_price DECIMAL(10, 2) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS health_check (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'ok'
+    );
+
+    -- Sample Data
+    INSERT IGNORE INTO users (id, username, email) VALUES
+        (1, 'demo_user', 'demo@example.com'),
+        (2, 'test_user', 'test@example.com');
+
+    INSERT IGNORE INTO products (id, name, description, price, stock) VALUES
+        (1, 'EKS Workshop', 'AWS EKS 교육 과정', 500000.00, 100),
+        (2, 'Terraform Guide', 'IaC 가이드북', 50000.00, 50),
+        (3, 'ArgoCD Tutorial', 'GitOps 튜토리얼', 30000.00, 200);
+
+    INSERT IGNORE INTO health_check (status) VALUES ('initialized');
