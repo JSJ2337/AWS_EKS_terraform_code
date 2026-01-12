@@ -11,7 +11,6 @@ on:
         options:
           - all
           - 00-foundation
-          - 04-iam
           - 05-cloudwatch
           - 10-networking
           - 20-security
@@ -78,13 +77,6 @@ jobs:
         working-directory: environments/${{ inputs.environment }}/00-foundation
         run: |
           echo ">>> Applying 00-foundation..."
-          terragrunt run init
-          terragrunt run -- apply -auto-approve
-
-      - name: Apply 04-iam
-        working-directory: environments/${{ inputs.environment }}/04-iam
-        run: |
-          echo ">>> Applying 04-iam..."
           terragrunt run init
           terragrunt run -- apply -auto-approve
 
@@ -162,7 +154,7 @@ jobs:
         run: |
           echo "## Terragrunt Apply All Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Layers applied:** 00-foundation → 04-iam → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 45-ecr → 50-addons → 55-argocd → 56-vpc-lattice → 60-database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers applied:** 00-foundation → 05-cloudwatch → 10-networking → 20-security → 30-eks-cluster → 40-fargate → 45-ecr → 50-addons → 55-argocd → 56-vpc-lattice → 60-database" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   apply-single:
