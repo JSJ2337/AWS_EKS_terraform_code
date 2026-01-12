@@ -28,16 +28,6 @@ dependency "networking" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-dependency "iam" {
-  config_path = "../04-iam"
-
-  mock_outputs = {
-    fargate_pod_execution_role_arn = "arn:aws:iam::123456789012:role/mock-fargate-role"
-  }
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
-}
-
 dependency "eks_cluster" {
   config_path = "../30-eks-cluster"
 
@@ -54,7 +44,7 @@ dependency "eks_cluster" {
 
 inputs = {
   cluster_name           = dependency.eks_cluster.outputs.cluster_name
-  pod_execution_role_arn = dependency.iam.outputs.fargate_pod_execution_role_arn
+  pod_execution_role_arn = local.common.locals.bootstrap_iam.fargate_pod_execution_role_arn
   subnet_ids             = dependency.networking.outputs.private_subnet_ids
 
   # System Fargate Profile (kube-system, argocd)

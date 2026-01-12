@@ -53,16 +53,6 @@ dependency "security" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-dependency "iam" {
-  config_path = "../04-iam"
-
-  mock_outputs = {
-    eks_cluster_role_arn = "arn:aws:iam::123456789012:role/mock-eks-cluster-role"
-  }
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
-}
-
 # CloudWatch Log Group이 EKS보다 먼저 생성되어야 함
 dependency "cloudwatch" {
   config_path = "../05-cloudwatch"
@@ -79,7 +69,7 @@ dependency "cloudwatch" {
 inputs = {
   cluster_name              = local.common.locals.cluster_name
   cluster_version           = local.common.locals.cluster_version
-  cluster_role_arn          = dependency.iam.outputs.eks_cluster_role_arn
+  cluster_role_arn          = local.common.locals.bootstrap_iam.eks_cluster_role_arn
   subnet_ids                = dependency.networking.outputs.private_subnet_ids
   cluster_security_group_id = dependency.security.outputs.eks_cluster_security_group_id
   kms_key_arn               = dependency.foundation.outputs.kms_key_arn

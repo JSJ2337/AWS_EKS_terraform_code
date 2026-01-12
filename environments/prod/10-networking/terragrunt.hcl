@@ -29,16 +29,6 @@ dependency "foundation" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
 }
 
-dependency "iam" {
-  config_path = "../04-iam"
-
-  mock_outputs = {
-    flow_logs_role_arn = "arn:aws:iam::123456789012:role/mock-flow-logs"
-  }
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "show", "state", "providers"]
-}
-
 dependency "cloudwatch" {
   config_path = "../05-cloudwatch"
 
@@ -67,9 +57,9 @@ inputs = {
   # CloudWatch Log Group for VPC Flow Logs (from 05-cloudwatch)
   flow_logs_log_group_arn = dependency.cloudwatch.outputs.vpc_flow_log_group_arn
 
-  # VPC Flow Logs IAM Role (from 04-iam)
+  # VPC Flow Logs IAM Role (from bootstrap/01-iam via common.hcl)
   create_flow_logs_iam_role = false
-  flow_logs_role_arn        = dependency.iam.outputs.flow_logs_role_arn
+  flow_logs_role_arn        = local.common.locals.bootstrap_iam.flow_logs_role_arn
 
   # VPC Endpoints (ECR, S3, CloudWatch Logs, STS)
   enable_vpc_endpoints = local.common.locals.enable_vpc_endpoints
